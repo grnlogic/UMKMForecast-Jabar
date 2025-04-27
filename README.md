@@ -1,46 +1,97 @@
-# Getting Started with Create React App
+# UMKMForecast Jabar
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+![UMKM Forecast Jabar](/public/banner.png)
 
-## Available Scripts
+UMKMForecast Jabar adalah aplikasi web interaktif untuk visualisasi dan prediksi data pertumbuhan UMKM (Usaha Mikro, Kecil, dan Menengah) di Jawa Barat. Aplikasi ini menggunakan metode statistik seperti regresi linear dan interpolasi untuk memprediksi pertumbuhan UMKM di masa mendatang.
 
-In the project directory, you can run:
+[![React](https://img.shields.io/badge/React-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://reactjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Chart.js](https://img.shields.io/badge/Chart.js-FF6384?style=for-the-badge&logo=chart.js&logoColor=white)](https://www.chartjs.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 
-### `npm start`
+## 📋 Fitur Utama
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+- **Dashboard Data UMKM**: Visualisasi jumlah UMKM per tahun dalam bentuk tabel dan grafik interaktif
+- **Prediksi Regresi Linear**: Perhitungan dan visualisasi proyeksi jumlah UMKM di masa mendatang
+- **Estimasi Interpolasi Linear**: Perhitungan data tahun-tahun yang tidak terdokumentasi
+- **Perbandingan Model**: Analisis perbandingan antara model regresi dan interpolasi
+- **Evaluasi Akurasi Model**: Perhitungan RMSE, MAE, dan MAPE untuk mengukur akurasi model
+- **Sumber Data Resmi**: Informasi tentang sumber data yang digunakan dalam aplikasi
+- **Ekspor Laporan**: Fitur untuk mengunduh data dalam format PDF dan Excel
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+## 💻 Teknologi yang Digunakan
 
-### `npm test`
+- **Frontend**: React, TypeScript, Tailwind CSS
+- **Visualisasi**: Chart.js
+- **UI Components**: Shadcn UI
+- **Notifikasi**: SweetAlert2
+- **State Management**: React Context API
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## 🚀 Instalasi dan Penggunaan
 
-### `npm run build`
+### Prasyarat
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+- Node.js (v14.0.0 atau lebih baru)
+- npm atau yarn
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### Langkah Instalasi
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+1. Clone repositori ini
 
-### `npm run eject`
+   ```bash
+   git clone https://github.com/grnlogic/umkmforecast-jabar.git
+   cd umkmforecast-jabar
+   ```
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+2. Install dependensi
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+   ```bash
+   npm install
+   # atau
+   yarn install
+   ```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+3. Jalankan aplikasi dalam mode development
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+   ```bash
+   npm run dev
+   # atau
+   yarn dev
+   ```
 
-## Learn More
+4. Buka aplikasi di browser
+   ```
+   http://localhost:3000
+   ```
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+## 📊 Cara Penggunaan
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+1. **Input Data Historis**:
+
+   - Masukkan data tahun dan jumlah UMKM pada form yang tersedia
+   - Data akan ditampilkan dalam bentuk tabel dan grafik
+
+2. **Prediksi Jumlah UMKM**:
+
+   - Pilih tab "Prediksi (Regresi)"
+   - Masukkan tahun target prediksi
+   - Sistem akan menghitung prediksi menggunakan regresi linear
+
+3. **Estimasi Data dengan Interpolasi**:
+
+   - Pilih tab "Estimasi (Interpolasi)"
+   - Masukkan data tahun awal, tahun akhir, dan tahun target estimasi
+   - Sistem akan menghitung nilai estimasi menggunakan interpolasi linear
+
+4. **Perbandingan Model**:
+
+   - Pilih tab "Perbandingan Model"
+   - Masukkan tahun target
+   - Sistem akan menampilkan perbandingan hasil dari model regresi dan interpolasi
+
+5. **Evaluasi Akurasi**:
+   - Pilih tab "Evaluasi Akurasi"
+   - Input data aktual dan prediksi untuk tahun-tahun tertentu
+   - Sistem akan menghitung metrik evaluasi (RMSE, MAE, MAPE)
+
+## 📁 Struktur Proyek
