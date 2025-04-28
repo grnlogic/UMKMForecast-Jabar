@@ -17,12 +17,14 @@ export const DataChart: React.FC = () => {
     umkmData.length > 0
       ? umkmData
       : [
-          { id: 1, year: 2015, count: 120000 },
-          { id: 2, year: 2016, count: 135000 },
-          { id: 3, year: 2017, count: 142000 },
-          { id: 4, year: 2018, count: 156000 },
-          { id: 5, year: 2019, count: 168000 },
-          { id: 6, year: 2020, count: 175000 },
+          { id: 1, year: 2016, count: 375048 },
+          { id: 2, year: 2017, count: 27498 },
+          { id: 3, year: 2018, count: 102737 },
+          { id: 4, year: 2019, count: 31006 },
+          { id: 5, year: 2020, count: 32925 },
+          { id: 6, year: 2021, count: 34962 },
+          { id: 7, year: 2022, count: 37125 },
+          { id: 8, year: 2023, count: 39422 },
         ];
 
   // Fungsi untuk membuat atau memperbarui grafik

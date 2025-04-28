@@ -48,7 +48,8 @@ export const PredictionSection: React.FC = () => {
       return;
     }
 
-    // Perhitungan regresi linear
+
+    // logika Perhitungan regresi linear
     const n = umkmData.length;
     const sumX = umkmData.reduce((sum, point) => sum + point.year, 0);
     const sumY = umkmData.reduce((sum, point) => sum + point.count, 0);

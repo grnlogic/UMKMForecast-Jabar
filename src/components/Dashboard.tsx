@@ -9,6 +9,7 @@ import { ModelComparison } from "./ModelComparison";
 import { ModelEvaluation } from "./ModelEvaluation";
 import { ExportReport } from "./ExportReport";
 import { DataSource } from "./DataSource";
+import { CalculationCalculator } from "./CalculationCalculator";
 import { Button } from "./ui/button";
 import { DataProvider } from "../contexts/DataContext";
 import { showInfo } from "../utils/chartUtils";
@@ -117,6 +118,16 @@ export const Dashboard: React.FC = () => {
               Evaluasi Akurasi
             </Button>
             <Button
+              onClick={() => handleTabChange("calculator")}
+              className={`px-3 py-2 text-sm md:text-base md:px-4 rounded-md transition-all flex-shrink-0 ${
+                activeTab === "calculator"
+                  ? "bg-blue-800 text-white shadow-md"
+                  : "bg-white text-blue-800 hover:bg-blue-100"
+              }`}
+            >
+              Kalkulator Perhitungan
+            </Button>
+            <Button
               onClick={() => handleTabChange("source")}
               className={`px-3 py-2 text-sm md:text-base md:px-4 rounded-md transition-all flex-shrink-0 ${
                 activeTab === "source"
@@ -207,6 +218,21 @@ export const Dashboard: React.FC = () => {
                 </p>
                 <div className="bg-slate-50 p-4 rounded-lg">
                   <ModelEvaluation />
+                </div>
+              </div>
+            )}
+
+            {activeTab === "calculator" && (
+              <div className="space-y-6">
+                <h2 className="text-2xl font-semibold text-blue-900 border-b border-blue-100 pb-2">
+                  Kalkulator Perhitungan
+                </h2>
+                <p className="text-slate-600">
+                  Alat untuk perhitungan manual regresi linear dan interpolasi
+                  linear berdasarkan data yang Anda masukkan.
+                </p>
+                <div className="bg-slate-50 p-4 rounded-lg">
+                  <CalculationCalculator />
                 </div>
               </div>
             )}
