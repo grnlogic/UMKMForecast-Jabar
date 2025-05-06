@@ -1,50 +1,57 @@
 "use client";
 
 import React, { createContext, useState, useContext, ReactNode } from "react";
-import { showSuccess, showError, showConfirmation, showWarning } from "../utils/chartUtils";
+import {
+  showSuccess,
+  showError,
+  showConfirmation,
+  showWarning,
+} from "../utils/chartUtils";
 
-export interface UMKMData {
+interface DataPoint {
   id: number;
   year: number;
   count: number;
 }
 
+interface RegionalDataPoint {
+  provinsi: string;
+  kabupaten: string;
+  jumlahUMKM: number;
+  tahun: number;
+}
+
 interface DataContextType {
-  umkmData: UMKMData[];
+  umkmData: DataPoint[];
+  regionalData: RegionalDataPoint[];
   addData: (year: number, count: number) => void;
   removeData: (id: number) => void;
   clearData: () => void;
+  importCSVData: (data: RegionalDataPoint[]) => void;
+  getRegionalDataForYear: (year: number) => RegionalDataPoint[];
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
-export function DataProvider({ children }: { children: ReactNode }) {
-  const [umkmData, setUmkmData] = useState<UMKMData[]>([]);
+export const useData = (): DataContextType => {
+  const context = useContext(DataContext);
+  if (!context) {
+    throw new Error("useData must be used within a DataProvider");
+  }
+  return context;
+};
+
+export const DataProvider: React.FC<{ children: ReactNode }> = ({
+  children,
+}) => {
+  const [umkmData, setUmkmData] = useState<DataPoint[]>([]);
+  const [regionalData, setRegionalData] = useState<RegionalDataPoint[]>([]);
+  const [nextId, setNextId] = useState(1);
 
   const addData = (year: number, count: number) => {
-    // Cek apakah tahun sudah ada
-    const existingData = umkmData.find((item) => item.year === year);
-    if (existingData) {
-      showWarning(
-        "Data Duplikat",
-        `Data untuk tahun ${year} sudah ada. Silakan gunakan tahun yang berbeda.`
-      );
-      return;
-    }
-
-    const newData: UMKMData = {
-      id: Date.now(),
-      year,
-      count,
-    };
-    setUmkmData((prevData) =>
-      [...prevData, newData].sort((a, b) => a.year - b.year)
-    );
-
-    showSuccess(
-      "Data Ditambahkan",
-      `Data untuk tahun ${year} telah berhasil ditambahkan.`
-    );
+    const newData = [...umkmData, { id: nextId, year, count }];
+    setUmkmData(newData.sort((a, b) => a.year - b.year));
+    setNextId(nextId + 1);
   };
 
   const removeData = async (id: number) => {
@@ -79,17 +86,48 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  return (
-    <DataContext.Provider value={{ umkmData, addData, removeData, clearData }}>
-      {children}
-    </DataContext.Provider>
-  );
-}
+  const importCSVData = (data: RegionalDataPoint[]) => {
+    setRegionalData([...regionalData, ...data]);
 
-export function useData() {
-  const context = useContext(DataContext);
-  if (context === undefined) {
-    throw new Error("useData harus digunakan dalam DataProvider");
-  }
-  return context;
-}
+    // Also aggregate the data by year and add to umkmData
+    const yearlyTotals = new Map<number, number>();
+
+    // Sum up all UMKM counts by year
+    data.forEach((item) => {
+      const currentTotal = yearlyTotals.get(item.tahun) || 0;
+      yearlyTotals.set(item.tahun, currentTotal + item.jumlahUMKM);
+    });
+
+    // Add aggregated yearly data to umkmData
+    yearlyTotals.forEach((count, year) => {
+      // Check if the year already exists
+      const existingIndex = umkmData.findIndex((d) => d.year === year);
+
+      if (existingIndex >= 0) {
+        // Update existing year
+        const updatedData = [...umkmData];
+        updatedData[existingIndex].count = count;
+        setUmkmData(updatedData);
+      } else {
+        // Add new year
+        addData(year, count);
+      }
+    });
+  };
+
+  const getRegionalDataForYear = (year: number) => {
+    return regionalData.filter((item) => item.tahun === year);
+  };
+
+  const value = {
+    umkmData,
+    regionalData,
+    addData,
+    removeData,
+    clearData,
+    importCSVData,
+    getRegionalDataForYear,
+  };
+
+  return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
+};

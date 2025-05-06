@@ -62,6 +62,7 @@ export const PredictionSection: React.FC = () => {
       0
     );
 
+    //Perhitungan Koefisien Regresi Linear
     const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
     const intercept = (sumY - slope * sumX) / n;
 

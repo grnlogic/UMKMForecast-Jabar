@@ -1,28 +1,45 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
-import { useData, UMKMData } from "../contexts/DataContext";
 import Chart from "chart.js/auto";
 import {
   defaultChartOptions,
   showSuccess,
   showError,
 } from "../utils/chartUtils";
+import { useModelData } from "../contexts/ModelContext";
 
-// Mendefinisikan alias tipe DataPoint untuk digunakan dalam logika internal
-type DataPoint = UMKMData;
+// Add this type definition
+type DataPoint = {
+  year: number;
+  count: number;
+};
 
 export const ModelComparison: React.FC = () => {
-  const { umkmData, addData, removeData } = useData();
+  const {
+    comparisonData,
+    addComparisonDataPoint,
+    removeComparisonDataPoint,
+    futureYear,
+    setFutureYear,
+    regressionResult,
+    setRegressionResult,
+    interpolationComparisonResult: interpolationResult,
+    setInterpolationComparisonResult: setInterpolationResult,
+    // Interpolation data from context
+    startYear,
+    startCount,
+    endYear,
+    endCount,
+    // New function to use imported data
+    useUmkmDataForComparison,
+  } = useModelData();
+
   const [year, setYear] = useState<string>("");
   const [count, setCount] = useState<string>("");
-  const [futureYear, setFutureYear] = useState<string>("");
-  const [regressionResult, setRegressionResult] = useState<number | null>(null);
-  const [interpolationResult, setInterpolationResult] = useState<number | null>(
-    null
-  );
+
   const chartRef = useRef<HTMLCanvasElement>(null);
   const chartInstance = useRef<Chart | null>(null);
 
@@ -34,31 +51,31 @@ export const ModelComparison: React.FC = () => {
 
     if (isNaN(yearNum) || isNaN(countNum)) return;
 
-    // Call addData with two separate parameters instead of one object
-    addData(yearNum, countNum);
+    // Add data to shared context
+    addComparisonDataPoint(yearNum, countNum);
     setYear("");
     setCount("");
   };
 
   const handleRemoveData = (index: number) => {
-    removeData(index);
+    removeComparisonDataPoint(index);
   };
 
   const calculatePredictions = () => {
-    if (umkmData.length < 2 || !futureYear) return;
+    if (comparisonData.length < 2 || !futureYear) return;
 
     const futureYearNum = Number.parseInt(futureYear);
     if (isNaN(futureYearNum)) return;
 
     // Perhitungan regresi linear
-    const n = umkmData.length;
-    const sumX = umkmData.reduce((sum, point) => sum + point.year, 0);
-    const sumY = umkmData.reduce((sum, point) => sum + point.count, 0);
-    const sumXY = umkmData.reduce(
+    const n = comparisonData.length;
+    const sumX = comparisonData.reduce((sum, point) => sum + point.year, 0);
+    const sumY = comparisonData.reduce((sum, point) => sum + point.count, 0);
+    const sumXY = comparisonData.reduce(
       (sum, point) => sum + point.year * point.count,
       0
     );
-    const sumXX = umkmData.reduce(
+    const sumXX = comparisonData.reduce(
       (sum, point) => sum + point.year * point.year,
       0
     );
@@ -70,54 +87,77 @@ export const ModelComparison: React.FC = () => {
     const regressionValue = slope * futureYearNum + intercept;
     setRegressionResult(Math.round(regressionValue));
 
-    // Untuk interpolasi, kita perlu menemukan titik-titik terdekat
-    // Jika tahun target berada di luar jangkauan, kita akan menggunakan ekstrapolasi
-    const sortedData = [...umkmData].sort((a, b) => a.year - b.year);
+    // Use interpolation data if available
+    if (startYear && startCount && endYear && endCount) {
+      const startYearNum = Number.parseInt(startYear);
+      const startCountNum = Number.parseInt(startCount);
+      const endYearNum = Number.parseInt(endYear);
+      const endCountNum = Number.parseInt(endCount);
 
-    if (futureYearNum <= sortedData[0].year) {
-      // Ekstrapolasi sebelum titik pertama
-      const x1 = sortedData[0].year;
-      const y1 = sortedData[0].count;
-      const x2 = sortedData[1].year;
-      const y2 = sortedData[1].count;
-
-      const interpolatedValue =
-        y1 + (futureYearNum - x1) * ((y2 - y1) / (x2 - x1));
-      setInterpolationResult(Math.round(interpolatedValue));
-    } else if (futureYearNum >= sortedData[sortedData.length - 1].year) {
-      // Ekstrapolasi setelah titik terakhir
-      const x1 = sortedData[sortedData.length - 2].year;
-      const y1 = sortedData[sortedData.length - 2].count;
-      const x2 = sortedData[sortedData.length - 1].year;
-      const y2 = sortedData[sortedData.length - 1].count;
-
-      const interpolatedValue =
-        y1 + (futureYearNum - x1) * ((y2 - y1) / (x2 - x1));
-      setInterpolationResult(Math.round(interpolatedValue));
-    } else {
-      // Interpolasi antara titik-titik
-      let lowerPoint: DataPoint | null = null;
-      let upperPoint: DataPoint | null = null;
-
-      for (let i = 0; i < sortedData.length - 1; i++) {
-        if (
-          futureYearNum >= sortedData[i].year &&
-          futureYearNum <= sortedData[i + 1].year
-        ) {
-          lowerPoint = sortedData[i];
-          upperPoint = sortedData[i + 1];
-          break;
-        }
-      }
-
-      if (lowerPoint && upperPoint) {
+      if (
+        !isNaN(startYearNum) &&
+        !isNaN(startCountNum) &&
+        !isNaN(endYearNum) &&
+        !isNaN(endCountNum)
+      ) {
+        // Calculate interpolation with the data from the interpolation section
         const interpolatedValue =
-          lowerPoint.count +
-          (futureYearNum - lowerPoint.year) *
-            ((upperPoint.count - lowerPoint.count) /
-              (upperPoint.year - lowerPoint.year));
+          startCountNum +
+          (futureYearNum - startYearNum) *
+            ((endCountNum - startCountNum) / (endYearNum - startYearNum));
 
         setInterpolationResult(Math.round(interpolatedValue));
+      }
+    } else {
+      // Untuk interpolasi, kita perlu menemukan titik-titik terdekat
+      // Jika tahun target berada di luar jangkauan, kita akan menggunakan ekstrapolasi
+      const sortedData = [...comparisonData].sort((a, b) => a.year - b.year);
+
+      if (futureYearNum <= sortedData[0].year) {
+        // Ekstrapolasi sebelum titik pertama
+        const x1 = sortedData[0].year;
+        const y1 = sortedData[0].count;
+        const x2 = sortedData[1].year;
+        const y2 = sortedData[1].count;
+
+        const interpolatedValue =
+          y1 + (futureYearNum - x1) * ((y2 - y1) / (x2 - x1));
+        setInterpolationResult(Math.round(interpolatedValue));
+      } else if (futureYearNum >= sortedData[sortedData.length - 1].year) {
+        // Ekstrapolasi setelah titik terakhir
+        const x1 = sortedData[sortedData.length - 2].year;
+        const y1 = sortedData[sortedData.length - 2].count;
+        const x2 = sortedData[sortedData.length - 1].year;
+        const y2 = sortedData[sortedData.length - 1].count;
+
+        const interpolatedValue =
+          y1 + (futureYearNum - x1) * ((y2 - y1) / (x2 - x1));
+        setInterpolationResult(Math.round(interpolatedValue));
+      } else {
+        // Interpolasi antara titik-titik
+        let lowerPoint: DataPoint | null = null;
+        let upperPoint: DataPoint | null = null;
+
+        for (let i = 0; i < sortedData.length - 1; i++) {
+          if (
+            futureYearNum >= sortedData[i].year &&
+            futureYearNum <= sortedData[i + 1].year
+          ) {
+            lowerPoint = sortedData[i];
+            upperPoint = sortedData[i + 1];
+            break;
+          }
+        }
+
+        if (lowerPoint && upperPoint) {
+          const interpolatedValue =
+            lowerPoint.count +
+            (futureYearNum - lowerPoint.year) *
+              ((upperPoint.count - lowerPoint.count) /
+                (upperPoint.year - lowerPoint.year));
+
+          setInterpolationResult(Math.round(interpolatedValue));
+        }
       }
     }
   };
@@ -237,7 +277,25 @@ export const ModelComparison: React.FC = () => {
           </div>
         </div>
 
-        {umkmData.length > 0 ? (
+        {/* Add this button to load imported data */}
+        <div className="mb-4">
+          <Button 
+            onClick={useUmkmDataForComparison}
+            className="text-sm bg-green-600 hover:bg-green-700 text-white"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-4 w-4 mr-1"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+            </svg>
+            Gunakan Data Terimpor
+          </Button>
+        </div>
+
+        {comparisonData.length > 0 ? (
           <table className="mb-6">
             <thead>
               <tr>
@@ -247,7 +305,7 @@ export const ModelComparison: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {umkmData.map((item, index) => (
+              {comparisonData.map((item, index) => (
                 <tr key={index}>
                   <td>{item.year}</td>
                   <td>{item.count.toLocaleString()}</td>
@@ -289,7 +347,7 @@ export const ModelComparison: React.FC = () => {
             <Button
               onClick={calculatePredictions}
               className="button"
-              disabled={umkmData.length < 2}
+              disabled={comparisonData.length < 2}
             >
               Bandingkan Model
             </Button>

@@ -1,22 +1,26 @@
 "use client";
 
-import type React from "react";
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
-
-interface DataPoint {
-  year: number;
-  count: number;
-}
+import { useModelData } from "../contexts/ModelContext";
 
 export const InterpolationSection: React.FC = () => {
-  const [startYear, setStartYear] = useState<string>("");
-  const [startCount, setStartCount] = useState<string>("");
-  const [endYear, setEndYear] = useState<string>("");
-  const [endCount, setEndCount] = useState<string>("");
-  const [targetYear, setTargetYear] = useState<string>("");
-  const [interpolation, setInterpolation] = useState<number | null>(null);
+  const {
+    startYear,
+    setStartYear,
+    startCount,
+    setStartCount,
+    endYear,
+    setEndYear,
+    endCount,
+    setEndCount,
+    targetYearInterpolation: targetYear,
+    setTargetYearInterpolation: setTargetYear,
+    interpolationResult,
+    setInterpolationResult,
+  } = useModelData();
+
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const calculateInterpolation = () => {
@@ -50,7 +54,7 @@ export const InterpolationSection: React.FC = () => {
       (targetYearNum - startYearNum) *
         ((endCountNum - startCountNum) / (endYearNum - startYearNum));
 
-    setInterpolation(Math.round(interpolatedValue));
+    setInterpolationResult(Math.round(interpolatedValue));
   };
 
   // Draw interpolation chart
@@ -214,13 +218,13 @@ export const InterpolationSection: React.FC = () => {
     );
 
     // Draw interpolation point if available
-    if (interpolation !== null && targetYearNum) {
+    if (interpolationResult !== null && targetYearNum) {
       const targetX =
         marginLeft + ((targetYearNum - minYear) / yearRange) * chartWidth;
       const targetY =
         marginTop +
         chartHeight -
-        ((interpolation - minCount) / countRange) * chartHeight;
+        ((interpolationResult - minCount) / countRange) * chartHeight;
 
       // Draw point
       ctx.beginPath();
@@ -236,7 +240,7 @@ export const InterpolationSection: React.FC = () => {
       ctx.font = "bold 14px Arial";
       ctx.textAlign = "center";
       ctx.fillText(
-        `${targetYearNum}: ${interpolation.toLocaleString()}`,
+        `${targetYearNum}: ${interpolationResult.toLocaleString()}`,
         targetX,
         targetY - 20
       );
@@ -257,7 +261,7 @@ export const InterpolationSection: React.FC = () => {
     ctx.font = "14px Arial";
     ctx.textAlign = "left";
     ctx.fillText("Data Aktual", marginLeft + 10, marginTop + 20);
-    if (interpolation !== null) {
+    if (interpolationResult !== null) {
       ctx.fillText("Interpolasi", marginLeft + 10, marginTop + 40);
     }
 
@@ -270,7 +274,7 @@ export const InterpolationSection: React.FC = () => {
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    if (interpolation !== null) {
+    if (interpolationResult !== null) {
       ctx.beginPath();
       ctx.arc(marginLeft + 100, marginTop + 40, 6, 0, Math.PI * 2);
       ctx.fillStyle = "#10b981";
@@ -299,7 +303,14 @@ export const InterpolationSection: React.FC = () => {
       marginLeft + chartWidth / 2,
       marginTop + chartHeight + 35
     );
-  }, [startYear, startCount, endYear, endCount, targetYear, interpolation]);
+  }, [
+    startYear,
+    startCount,
+    endYear,
+    endCount,
+    targetYear,
+    interpolationResult,
+  ]);
 
   // Handle window resize
   useEffect(() => {
@@ -313,8 +324,8 @@ export const InterpolationSection: React.FC = () => {
         canvas.width = container.clientWidth;
         canvas.height = 400;
         // This will trigger the useEffect above to redraw
-        if (interpolation !== null) {
-          setInterpolation(interpolation);
+        if (interpolationResult !== null) {
+          setInterpolationResult(interpolationResult);
         }
       }
     };
@@ -325,7 +336,7 @@ export const InterpolationSection: React.FC = () => {
     return () => {
       window.removeEventListener("resize", handleResize);
     };
-  }, [interpolation]);
+  }, [interpolationResult]);
 
   return (
     <div className="space-y-8">
@@ -448,7 +459,7 @@ export const InterpolationSection: React.FC = () => {
           </div>
         </div>
 
-        {interpolation !== null && (
+        {interpolationResult !== null && (
           <div className="p-6 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border-l-4 border-blue-800">
             <div className="flex items-center mb-3">
               <svg
@@ -475,7 +486,7 @@ export const InterpolationSection: React.FC = () => {
             </p>
             <div className="bg-white p-4 rounded-lg text-center mb-4 shadow-sm">
               <p className="text-3xl font-bold text-blue-800">
-                {interpolation.toLocaleString()}
+                {interpolationResult.toLocaleString()}
               </p>
               <p className="text-sm text-slate-500">UMKM</p>
             </div>

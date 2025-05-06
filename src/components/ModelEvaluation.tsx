@@ -1,31 +1,34 @@
 "use client";
 
-import type React from "react";
 import { useState, useEffect, useRef } from "react";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
-
-interface DataPoint {
-  year: number;
-  actualCount: number;
-  predictedCount: number;
-}
+import { useModelData } from "../contexts/ModelContext";
 
 export const ModelEvaluation: React.FC = () => {
-  const [data, setData] = useState<DataPoint[]>([]);
+  const {
+    evaluationData,
+    addEvaluationDataPoint,
+    removeEvaluationDataPoint,
+    metrics,
+    setMetrics,
+    // Use comparison data if available
+    comparisonData,
+    regressionResult,
+  } = useModelData();
+
   const [year, setYear] = useState<string>("");
   const [actualCount, setActualCount] = useState<string>("");
   const [predictedCount, setPredictedCount] = useState<string>("");
-  const [metrics, setMetrics] = useState<{
-    rmse: number | null;
-    mae: number | null;
-    mape: number | null;
-  }>({
-    rmse: null,
-    mae: null,
-    mape: null,
-  });
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Pre-fill prediction data if available
+  useEffect(() => {
+    if (comparisonData.length > 0 && regressionResult !== null) {
+      // You could auto-generate evaluation data based on comparison data
+      // and regression results
+    }
+  }, [comparisonData, regressionResult]);
 
   const handleAddData = () => {
     if (!year || !actualCount || !predictedCount) return;
@@ -37,50 +40,46 @@ export const ModelEvaluation: React.FC = () => {
     if (isNaN(yearNum) || isNaN(actualCountNum) || isNaN(predictedCountNum))
       return;
 
-    const newData: DataPoint = {
+    addEvaluationDataPoint({
       year: yearNum,
       actualCount: actualCountNum,
       predictedCount: predictedCountNum,
-    };
+    });
 
-    setData([...data, newData].sort((a, b) => a.year - b.year));
     setYear("");
     setActualCount("");
     setPredictedCount("");
   };
 
-  const handleRemoveData = (index: number) => {
-    const newData = [...data];
-    newData.splice(index, 1);
-    setData(newData);
-  };
-
   const calculateMetrics = () => {
-    if (data.length === 0) return;
+    if (evaluationData.length === 0) return;
 
     // Calculate RMSE (Root Mean Square Error)
-    const squaredErrors = data.map((item) =>
+    const squaredErrors = evaluationData.map((item) =>
       Math.pow(item.actualCount - item.predictedCount, 2)
     );
     const mse =
-      squaredErrors.reduce((sum, error) => sum + error, 0) / data.length;
+      squaredErrors.reduce((sum, error) => sum + error, 0) /
+      evaluationData.length;
     const rmse = Math.sqrt(mse);
 
     // Calculate MAE (Mean Absolute Error)
-    const absoluteErrors = data.map((item) =>
+    const absoluteErrors = evaluationData.map((item) =>
       Math.abs(item.actualCount - item.predictedCount)
     );
     const mae =
-      absoluteErrors.reduce((sum, error) => sum + error, 0) / data.length;
+      absoluteErrors.reduce((sum, error) => sum + error, 0) /
+      evaluationData.length;
 
     // Calculate MAPE (Mean Absolute Percentage Error)
-    const percentageErrors = data.map(
+    const percentageErrors = evaluationData.map(
       (item) =>
         Math.abs((item.actualCount - item.predictedCount) / item.actualCount) *
         100
     );
     const mape =
-      percentageErrors.reduce((sum, error) => sum + error, 0) / data.length;
+      percentageErrors.reduce((sum, error) => sum + error, 0) /
+      evaluationData.length;
 
     setMetrics({
       rmse,
@@ -92,7 +91,7 @@ export const ModelEvaluation: React.FC = () => {
   // Draw evaluation chart
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || data.length === 0) return;
+    if (!canvas || evaluationData.length === 0) return;
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
@@ -112,13 +111,13 @@ export const ModelEvaluation: React.FC = () => {
     const marginBottom = 50;
 
     // Find min and max values for scaling
-    const minYear = Math.min(...data.map((d) => d.year));
-    const maxYear = Math.max(...data.map((d) => d.year));
+    const minYear = Math.min(...evaluationData.map((d) => d.year));
+    const maxYear = Math.max(...evaluationData.map((d) => d.year));
     const yearRange = maxYear - minYear;
 
     const allCounts = [
-      ...data.map((d) => d.actualCount),
-      ...data.map((d) => d.predictedCount),
+      ...evaluationData.map((d) => d.actualCount),
+      ...evaluationData.map((d) => d.predictedCount),
     ];
     const maxCount = Math.max(...allCounts) * 1.1; // Add 10% padding
     const minCount = Math.min(...allCounts) * 0.9; // Subtract 10% padding
@@ -162,10 +161,10 @@ export const ModelEvaluation: React.FC = () => {
     ctx.textBaseline = "top";
     ctx.fillStyle = "#1e293b";
 
-    const xTickCount = data.length - 1;
+    const xTickCount = evaluationData.length - 1;
     for (let i = 0; i <= xTickCount; i++) {
       const x = marginLeft + (i / xTickCount) * chartWidth;
-      const year = data[i].year;
+      const year = evaluationData[i].year;
 
       // Grid line
       ctx.beginPath();
@@ -187,7 +186,7 @@ export const ModelEvaluation: React.FC = () => {
 
     // Draw actual data line
     ctx.beginPath();
-    data.forEach((point, index) => {
+    evaluationData.forEach((point, index) => {
       const x = marginLeft + (index / xTickCount) * chartWidth;
       const y =
         marginTop +
@@ -206,7 +205,7 @@ export const ModelEvaluation: React.FC = () => {
 
     // Draw predicted data line
     ctx.beginPath();
-    data.forEach((point, index) => {
+    evaluationData.forEach((point, index) => {
       const x = marginLeft + (index / xTickCount) * chartWidth;
       const y =
         marginTop +
@@ -225,7 +224,7 @@ export const ModelEvaluation: React.FC = () => {
     ctx.stroke();
 
     // Draw data points for actual data
-    data.forEach((point, index) => {
+    evaluationData.forEach((point, index) => {
       const x = marginLeft + (index / xTickCount) * chartWidth;
       const y =
         marginTop +
@@ -242,7 +241,7 @@ export const ModelEvaluation: React.FC = () => {
     });
 
     // Draw data points for predicted data
-    data.forEach((point, index) => {
+    evaluationData.forEach((point, index) => {
       const x = marginLeft + (index / xTickCount) * chartWidth;
       const y =
         marginTop +
@@ -302,7 +301,7 @@ export const ModelEvaluation: React.FC = () => {
       marginLeft + chartWidth / 2,
       marginTop + chartHeight + 35
     );
-  }, [data]);
+  }, [evaluationData]);
 
   // Handle window resize
   useEffect(() => {
@@ -315,10 +314,7 @@ export const ModelEvaluation: React.FC = () => {
       if (container) {
         canvas.width = container.clientWidth;
         canvas.height = 400;
-        // This will trigger the useEffect above to redraw
-        if (data.length > 0) {
-          setData([...data]);
-        }
+        // This will trigger the useEffect above to redraw without needing to call setData
       }
     };
 
@@ -328,7 +324,7 @@ export const ModelEvaluation: React.FC = () => {
     return () => {
       window.removeEventListener("resize", handleResize);
     };
-  }, [data]);
+  }, [evaluationData]);
 
   return (
     <div>
@@ -375,7 +371,7 @@ export const ModelEvaluation: React.FC = () => {
           </Button>
         </div>
 
-        {data.length > 0 ? (
+        {evaluationData.length > 0 ? (
           <table className="mb-6">
             <thead>
               <tr>
@@ -387,7 +383,7 @@ export const ModelEvaluation: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {data.map((item, index) => (
+              {evaluationData.map((item, index) => (
                 <tr key={index}>
                   <td>{item.year}</td>
                   <td>{item.actualCount.toLocaleString()}</td>
@@ -399,7 +395,7 @@ export const ModelEvaluation: React.FC = () => {
                   </td>
                   <td>
                     <Button
-                      onClick={() => handleRemoveData(index)}
+                      onClick={() => removeEvaluationDataPoint(index)}
                       className="button secondary"
                     >
                       Hapus
@@ -416,7 +412,7 @@ export const ModelEvaluation: React.FC = () => {
         )}
       </div>
 
-      {data.length > 0 && (
+      {evaluationData.length > 0 && (
         <div className="bg-white p-4 rounded shadow mb-6">
           <canvas
             ref={canvasRef}
@@ -431,7 +427,7 @@ export const ModelEvaluation: React.FC = () => {
           <Button
             onClick={calculateMetrics}
             className="button"
-            disabled={data.length === 0}
+            disabled={evaluationData.length === 0}
           >
             Hitung Metrik Akurasi
           </Button>
