@@ -1,4 +1,10 @@
-import React, { createContext, useState, useContext, ReactNode, useEffect } from "react";
+import React, {
+  createContext,
+  useState,
+  useContext,
+  ReactNode,
+  useEffect,
+} from "react";
 import { useData } from "./DataContext";
 
 interface DataPoint {
@@ -38,9 +44,9 @@ interface ModelContextType {
   setFutureYear: (value: string) => void;
   setRegressionResult: (value: number | null) => void;
   setInterpolationComparisonResult: (value: number | null) => void;
-  
-  // Use data from DataContext in ModelContext
-  useUmkmDataForComparison: () => void;
+
+  // Rename this function to not start with "use"
+  syncWithUmkmData: () => void; // Changed from useUmkmDataForComparison
 
   // Evaluation data
   evaluationData: EvaluationDataPoint[];
@@ -107,20 +113,21 @@ export const ModelProvider: React.FC<{ children: ReactNode }> = ({
   });
 
   // Function to use umkmData from DataContext in comparisonData
-  const useUmkmDataForComparison = () => {
+  const syncWithUmkmData = () => {
+    // Changed from useUmkmDataForComparison
     if (umkmData.length > 0) {
-      const formattedData = umkmData.map(item => ({
+      const formattedData = umkmData.map((item) => ({
         year: item.year,
-        count: item.count
+        count: item.count,
       }));
       setComparisonData(formattedData);
-      
+
       // If there's data, also update the interpolation data with the min and max years
       const sorted = [...umkmData].sort((a, b) => a.year - b.year);
       if (sorted.length >= 2) {
         const first = sorted[0];
         const last = sorted[sorted.length - 1];
-        
+
         setStartYear(first.year.toString());
         setStartCount(first.count.toString());
         setEndYear(last.year.toString());
@@ -153,7 +160,7 @@ export const ModelProvider: React.FC<{ children: ReactNode }> = ({
   useEffect(() => {
     if (umkmData.length > 0 && comparisonData.length === 0) {
       // Auto-populate on first load
-      useUmkmDataForComparison();
+      syncWithUmkmData(); // Changed from useUmkmDataForComparison
     }
   }, [umkmData]);
 
@@ -183,7 +190,7 @@ export const ModelProvider: React.FC<{ children: ReactNode }> = ({
     setFutureYear,
     setRegressionResult,
     setInterpolationComparisonResult,
-    useUmkmDataForComparison,
+    syncWithUmkmData, // Changed from useUmkmDataForComparison
 
     // Evaluation
     evaluationData,

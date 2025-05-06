@@ -92,27 +92,31 @@ export const CSVImport: React.FC = () => {
       }
 
       // Get unique years for the message
-      const years = Array.from(new Set(validData.map(item => item.tahun))).sort();
-      
+      const years = Array.from(
+        new Set(validData.map((item) => item.tahun))
+      ).sort();
+
       // Import the data to DataContext
       importCSVData(validData);
-      
+
       // Also update the comparison data for the analysis tab
       // Group by year and aggregate
-      const yearlyData = years.map(year => {
-        const yearData = validData.filter(item => item.tahun === year);
-        const totalCount = yearData.reduce((sum, item) => sum + item.jumlahUMKM, 0);
+      const yearlyData = years.map((year) => {
+        const yearData = validData.filter((item) => item.tahun === year);
+        const totalCount = yearData.reduce(
+          (sum, item) => sum + item.jumlahUMKM,
+          0
+        );
         return { year, count: totalCount };
       });
-      
+
       // Update the ModelContext with this aggregated data
       setComparisonData(yearlyData);
-      
+
       showSuccess(
-        'Impor Berhasil', 
+        "Impor Berhasil",
         `${validData.length} data dari ${years.length} tahun berhasil diimpor`
       );
-      
     } catch (error) {
       console.error("Error parsing CSV:", error);
       showError(
@@ -187,7 +191,8 @@ export const CSVImport: React.FC = () => {
           />
         </svg>
         <span>
-          Data yang diimpor akan tersedia di semua tab termasuk prediksi dan analisis
+          Data yang diimpor akan tersedia di semua tab termasuk prediksi dan
+          analisis
         </span>
       </div>
     </div>

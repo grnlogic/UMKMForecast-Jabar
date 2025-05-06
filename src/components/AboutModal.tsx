@@ -20,16 +20,25 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
             </div>
             <h1 className="text-xl font-bold">UMKMForecast Jabar</h1>
           </div>
-          <Button 
+          <Button
             onClick={onClose}
             className="w-8 h-8 p-0 rounded-full flex items-center justify-center bg-transparent hover:bg-blue-800/50 text-white"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path
+                fillRule="evenodd"
+                d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                clipRule="evenodd"
+              />
             </svg>
           </Button>
         </div>
-        
+
         <div className="overflow-y-auto p-6 space-y-6">
           <div>
             <h2 className="text-2xl font-bold text-blue-900">
@@ -39,17 +48,17 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
               Solusi Cerdas Prediksi UMKM Jawa Barat
             </p>
           </div>
-          
+
           <div>
             <h3 className="text-lg font-medium mb-2">Konsep Aplikasi</h3>
             <p className="text-muted-foreground">
               UMKMForecast Jabar adalah sebuah aplikasi berbasis web yang
               dirancang untuk memudahkan pemangku kebijakan, peneliti, dan
-              masyarakat umum dalam memantau dan memprediksi jumlah Usaha
-              Mikro, Kecil, dan Menengah (UMKM) di Provinsi Jawa Barat.
-              Aplikasi ini mengintegrasikan data resmi dan menerapkan metode
-              prediktif seperti regresi linear dan interpolasi linier untuk
-              memproyeksikan pertumbuhan UMKM di masa mendatang.
+              masyarakat umum dalam memantau dan memprediksi jumlah Usaha Mikro,
+              Kecil, dan Menengah (UMKM) di Provinsi Jawa Barat. Aplikasi ini
+              mengintegrasikan data resmi dan menerapkan metode prediktif
+              seperti regresi linear dan interpolasi linier untuk memproyeksikan
+              pertumbuhan UMKM di masa mendatang.
             </p>
           </div>
 
@@ -68,8 +77,8 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
               </li>
               <li>
                 <strong>Estimasi Tahun Hilang (Interpolasi):</strong> Mengisi
-                dan menampilkan data pada tahun-tahun yang tidak
-                terdokumentasi secara lengkap menggunakan interpolasi linier.
+                dan menampilkan data pada tahun-tahun yang tidak terdokumentasi
+                secara lengkap menggunakan interpolasi linier.
               </li>
               <li>
                 <strong>Evaluasi Akurasi Model:</strong> Menampilkan nilai
@@ -91,16 +100,16 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
                 kebijakan UMKM di Jawa Barat.
               </li>
               <li>
-                Mempermudah akses masyarakat terhadap data dan tren
-                pertumbuhan UMKM.
+                Mempermudah akses masyarakat terhadap data dan tren pertumbuhan
+                UMKM.
               </li>
               <li>
-                Memberikan gambaran akurat tentang potensi perkembangan UMKM
-                di masa depan.
+                Memberikan gambaran akurat tentang potensi perkembangan UMKM di
+                masa depan.
               </li>
               <li>
-                Mendukung transparansi dan digitalisasi pengelolaan data
-                sektor UMKM.
+                Mendukung transparansi dan digitalisasi pengelolaan data sektor
+                UMKM.
               </li>
             </ul>
           </div>
@@ -118,9 +127,9 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
             </ul>
           </div>
         </div>
-        
+
         <div className="p-4 border-t bg-slate-50 flex justify-end">
-          <Button 
+          <Button
             onClick={onClose}
             className="bg-blue-800 hover:bg-blue-700 text-white"
           >

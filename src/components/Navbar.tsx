@@ -145,7 +145,10 @@ export const Navbar: React.FC = () => {
       </nav>
 
       {/* About Modal */}
-      <AboutModal isOpen={showAboutModal} onClose={() => setShowAboutModal(false)} />
+      <AboutModal
+        isOpen={showAboutModal}
+        onClose={() => setShowAboutModal(false)}
+      />
     </>
   );
 };

@@ -11,25 +11,38 @@ export const RegionalDataTable: React.FC = () => {
   const [filterProvinsi, setFilterProvinsi] = useState<string>("");
   const [filterKabupaten, setFilterKabupaten] = useState<string>("");
   const [groupByYear, setGroupByYear] = useState<boolean>(true);
-  
+
   // Get unique years, provinces, and districts for filtering
-  const years = Array.from(new Set(regionalData.map(item => item.tahun))).sort((a, b) => a - b);
-  const provinces = Array.from(new Set(regionalData.map(item => item.provinsi))).sort();
-  
+  const years = Array.from(
+    new Set(regionalData.map((item) => item.tahun))
+  ).sort((a, b) => a - b);
+  const provinces = Array.from(
+    new Set(regionalData.map((item) => item.provinsi))
+  ).sort();
+
   // Filter data based on user input
-  const filteredData = regionalData.filter(item => {
+  const filteredData = regionalData.filter((item) => {
     if (filterYear && item.tahun !== parseInt(filterYear)) return false;
-    if (filterProvinsi && !item.provinsi.toLowerCase().includes(filterProvinsi.toLowerCase())) return false;
-    if (filterKabupaten && !item.kabupaten.toLowerCase().includes(filterKabupaten.toLowerCase())) return false;
+    if (
+      filterProvinsi &&
+      !item.provinsi.toLowerCase().includes(filterProvinsi.toLowerCase())
+    )
+      return false;
+    if (
+      filterKabupaten &&
+      !item.kabupaten.toLowerCase().includes(filterKabupaten.toLowerCase())
+    )
+      return false;
     return true;
   });
 
   // Group by year if enabled
-  const groupedByYear = years.map(year => ({
+  const groupedByYear = years.map((year) => ({
     year,
-    count: regionalData.filter(item => item.tahun === year).length,
-    totalUMKM: regionalData.filter(item => item.tahun === year)
-      .reduce((sum, item) => sum + item.jumlahUMKM, 0)
+    count: regionalData.filter((item) => item.tahun === year).length,
+    totalUMKM: regionalData
+      .filter((item) => item.tahun === year)
+      .reduce((sum, item) => sum + item.jumlahUMKM, 0),
   }));
 
   return (
@@ -52,23 +65,29 @@ export const RegionalDataTable: React.FC = () => {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Tahun</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Tahun
+                </label>
                 <select
                   value={filterYear}
                   onChange={(e) => setFilterYear(e.target.value)}
                   className="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="">Semua Tahun ({years.length} tahun)</option>
-                  {years.map(year => (
-                    <option key={year} value={year}>{year}</option>
+                  {years.map((year) => (
+                    <option key={year} value={year}>
+                      {year}
+                    </option>
                   ))}
                 </select>
               </div>
-              
+
               {!groupByYear && (
                 <>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Provinsi</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Provinsi
+                    </label>
                     <Input
                       type="text"
                       value={filterProvinsi}
@@ -77,9 +96,11 @@ export const RegionalDataTable: React.FC = () => {
                       className="w-full"
                     />
                   </div>
-                  
+
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Kabupaten/Kota</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Kabupaten/Kota
+                    </label>
                     <Input
                       type="text"
                       value={filterKabupaten}
@@ -99,18 +120,35 @@ export const RegionalDataTable: React.FC = () => {
                 <table className="min-w-full divide-y divide-slate-200">
                   <thead className="bg-slate-50">
                     <tr>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Tahun</th>
-                      <th className="px-3 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Jumlah Kabupaten/Kota</th>
-                      <th className="px-3 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Total UMKM</th>
-                      <th className="px-3 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">Aksi</th>
+                      <th className="px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                        Tahun
+                      </th>
+                      <th className="px-3 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
+                        Jumlah Kabupaten/Kota
+                      </th>
+                      <th className="px-3 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
+                        Total UMKM
+                      </th>
+                      <th className="px-3 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
+                        Aksi
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-slate-200">
-                    {groupedByYear.map(item => (
-                      <tr key={item.year} className="hover:bg-slate-50 transition-colors">
-                        <td className="px-3 py-3 whitespace-nowrap text-sm font-medium text-slate-900">{item.year}</td>
-                        <td className="px-3 py-3 whitespace-nowrap text-sm text-slate-700 text-right">{item.count}</td>
-                        <td className="px-3 py-3 whitespace-nowrap text-sm text-slate-700 text-right">{item.totalUMKM.toLocaleString()}</td>
+                    {groupedByYear.map((item) => (
+                      <tr
+                        key={item.year}
+                        className="hover:bg-slate-50 transition-colors"
+                      >
+                        <td className="px-3 py-3 whitespace-nowrap text-sm font-medium text-slate-900">
+                          {item.year}
+                        </td>
+                        <td className="px-3 py-3 whitespace-nowrap text-sm text-slate-700 text-right">
+                          {item.count}
+                        </td>
+                        <td className="px-3 py-3 whitespace-nowrap text-sm text-slate-700 text-right">
+                          {item.totalUMKM.toLocaleString()}
+                        </td>
                         <td className="px-3 py-3 whitespace-nowrap text-sm text-center">
                           <Button
                             onClick={() => setFilterYear(item.year.toString())}
@@ -127,19 +165,38 @@ export const RegionalDataTable: React.FC = () => {
                 <table className="min-w-full divide-y divide-slate-200">
                   <thead className="bg-slate-50">
                     <tr>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Tahun</th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Provinsi</th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Kabupaten/Kota</th>
-                      <th className="px-3 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Jumlah UMKM</th>
+                      <th className="px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                        Tahun
+                      </th>
+                      <th className="px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                        Provinsi
+                      </th>
+                      <th className="px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                        Kabupaten/Kota
+                      </th>
+                      <th className="px-3 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
+                        Jumlah UMKM
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-slate-200">
                     {filteredData.map((item, index) => (
-                      <tr key={index} className="hover:bg-slate-50 transition-colors">
-                        <td className="px-3 py-3 whitespace-nowrap text-sm font-medium text-slate-900">{item.tahun}</td>
-                        <td className="px-3 py-3 whitespace-nowrap text-sm text-slate-700">{item.provinsi}</td>
-                        <td className="px-3 py-3 whitespace-nowrap text-sm text-slate-700">{item.kabupaten}</td>
-                        <td className="px-3 py-3 whitespace-nowrap text-sm text-slate-700 text-right">{item.jumlahUMKM.toLocaleString()}</td>
+                      <tr
+                        key={index}
+                        className="hover:bg-slate-50 transition-colors"
+                      >
+                        <td className="px-3 py-3 whitespace-nowrap text-sm font-medium text-slate-900">
+                          {item.tahun}
+                        </td>
+                        <td className="px-3 py-3 whitespace-nowrap text-sm text-slate-700">
+                          {item.provinsi}
+                        </td>
+                        <td className="px-3 py-3 whitespace-nowrap text-sm text-slate-700">
+                          {item.kabupaten}
+                        </td>
+                        <td className="px-3 py-3 whitespace-nowrap text-sm text-slate-700 text-right">
+                          {item.jumlahUMKM.toLocaleString()}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -147,9 +204,12 @@ export const RegionalDataTable: React.FC = () => {
               )}
             </div>
             <div className="px-3 py-3 bg-slate-50 text-xs text-slate-500 flex justify-between">
-              <span>Total: {regionalData.length} data dari {years.length} tahun</span>
               <span>
-                {!groupByYear && `Menampilkan ${filteredData.length} dari ${regionalData.length} data`}
+                Total: {regionalData.length} data dari {years.length} tahun
+              </span>
+              <span>
+                {!groupByYear &&
+                  `Menampilkan ${filteredData.length} dari ${regionalData.length} data`}
               </span>
             </div>
           </div>
@@ -176,7 +236,8 @@ export const RegionalDataTable: React.FC = () => {
             Belum ada data regional
           </h4>
           <p className="text-slate-500">
-            Silakan impor data regional menggunakan fitur Import Data CSV di atas.
+            Silakan impor data regional menggunakan fitur Import Data CSV di
+            atas.
           </p>
         </div>
       )}

@@ -69,7 +69,7 @@ export const Dashboard: React.FC = () => {
         <div className="bg-slate-50 min-h-screen pb-8">
           <div className="bg-gradient-to-r from-blue-900 to-blue-800 text-white p-6 shadow-md mb-6 flex justify-between items-center">
             <h1 className="text-2xl font-bold">UMKM Jawa Barat Analytics</h1>
-            <Button 
+            <Button
               onClick={() => setShowAboutModal(true)}
               className="bg-blue-700 hover:bg-blue-600 text-white"
             >
@@ -308,7 +308,10 @@ export const Dashboard: React.FC = () => {
         </div>
 
         {/* About Modal */}
-        <AboutModal isOpen={showAboutModal} onClose={() => setShowAboutModal(false)} />
+        <AboutModal
+          isOpen={showAboutModal}
+          onClose={() => setShowAboutModal(false)}
+        />
       </ModelProvider>
     </DataProvider>
   );
