@@ -168,6 +168,11 @@ export const Dashboard: React.FC = () => {
                   <h2 className="text-2xl font-semibold text-blue-900 border-b border-blue-100 pb-2">
                     Dashboard Data UMKM Jawa Barat
                   </h2>
+                  <div className="p-3 bg-amber-50 border-l-4 border-amber-400 text-amber-700 mb-4 rounded">
+                    <p className="text-sm">
+                      <span className="font-semibold">Mohon maaf:</span> Karena data API yang disediakan oleh pemerintah tidak diperbarui secara berkala, sistem kami memerlukan pengguna untuk mengunggah dan memasukkan data secara manual. Kami berusaha menyediakan solusi terbaik meskipun terdapat keterbatasan pada sumber data resmi.
+                    </p>
+                  </div>
                   <p className="text-slate-600">
                     Visualisasi data jumlah UMKM di Jawa Barat berdasarkan
                     tahun. Data ini diambil dari sumber resmi seperti BPS dan
