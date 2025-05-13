@@ -27,22 +27,8 @@ export const Navbar: React.FC = () => {
             {/* Desktop Navigation */}
             <div className="hidden md:block">
               <ul className="flex gap-6">
-                <li>
-                  <a
-                    href="#"
-                    className="py-2 px-1 text-white font-medium hover:text-blue-200 border-b-2 border-transparent hover:border-blue-200 transition-all"
-                  >
-                    Data & Visualisasi
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#"
-                    className="py-2 px-1 text-white font-medium hover:text-blue-200 border-b-2 border-transparent hover:border-blue-200 transition-all"
-                  >
-                    Prediksi Pertumbuhan
-                  </a>
-                </li>
+               
+               
                 <li>
                   <a
                     href="#"

@@ -67,15 +67,7 @@ export const Dashboard: React.FC = () => {
     <DataProvider>
       <ModelProvider>
         <div className="bg-slate-50 min-h-screen pb-8">
-          <div className="bg-gradient-to-r from-blue-900 to-blue-800 text-white p-6 shadow-md mb-6 flex justify-between items-center">
-            <h1 className="text-2xl font-bold">UMKM Jawa Barat Analytics</h1>
-            <Button
-              onClick={() => setShowAboutModal(true)}
-              className="bg-blue-700 hover:bg-blue-600 text-white"
-            >
-              Tentang Aplikasi
-            </Button>
-          </div>
+          
 
           <div className="container mx-auto px-4">
             <div className="flex flex-wrap mb-6 overflow-x-auto gap-1 bg-gradient-to-r from-blue-50 to-slate-50 p-2 rounded-lg shadow-sm">
