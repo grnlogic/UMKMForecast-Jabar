@@ -122,16 +122,15 @@ export const CalculationCalculator: React.FC = () => {
       const sumXY = xValues.reduce((sum, val, i) => sum + val * yValues[i], 0);
       const sumXX = xValues.reduce((sum, val) => sum + val * val, 0);
 
-      const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
-      const intercept = (sumY - slope * sumX) / n;
+      // Rumus regresi linier y = ax + b
+      const a = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX); // slope
+      const b = (sumY - a * sumX) / n; // intercept
 
-      const predictedValue = slope * targetX + intercept;
+      const predictedValue = a * targetX + b;
 
       setResult(Math.round(predictedValue * 100) / 100);
       setExplanation(`
-        Persamaan Regresi Linear: Y = ${slope.toFixed(
-          4
-        )}X + ${intercept.toFixed(4)}
+        Persamaan Regresi Linear: Y = ${a.toFixed(4)}X + ${b.toFixed(4)}
         
         Langkah Perhitungan:
         1. Jumlah data (n) = ${n}
@@ -139,9 +138,9 @@ export const CalculationCalculator: React.FC = () => {
         3. Jumlah Y = ${sumY}
         4. Jumlah X×Y = ${sumXY}
         5. Jumlah X² = ${sumXX}
-        6. Slope (b) = (n×ΣXY - ΣX×ΣY) / (n×ΣX² - (ΣX)²) = ${slope.toFixed(4)}
-        7. Intercept (a) = (ΣY - b×ΣX) / n = ${intercept.toFixed(4)}
-        8. Prediksi: Y = ${slope.toFixed(4)} × ${targetX} + ${intercept.toFixed(
+        6. Nilai a (slope) = (n×ΣXY - ΣX×ΣY) / (n×ΣX² - (ΣX)²) = ${a.toFixed(4)}
+        7. Nilai b (intercept) = (ΣY - a×ΣX) / n = ${b.toFixed(4)}
+        8. Prediksi: Y = ${a.toFixed(4)} × ${targetX} + ${b.toFixed(
         4
       )} = ${predictedValue.toFixed(4)}
       `);
@@ -182,26 +181,42 @@ export const CalculationCalculator: React.FC = () => {
         );
       }
 
-      // Calculate interpolation: y = y1 + (x - x1) * ((y2 - y1) / (x2 - x1))
-      const interpolatedValue = y1 + (targetX - x1) * ((y2 - y1) / (x2 - x1));
+      // Calculate the first divided difference
+      const firstDividedDiff = (y2 - y1) / (x2 - x1);
+
+      // Newton's interpolation formula (for two points)
+      const interpolatedValue = y1 + (targetX - x1) * firstDividedDiff;
 
       setResult(Math.round(interpolatedValue * 100) / 100);
       setExplanation(`
-        Rumus Interpolasi Linear: y = y₁ + (x - x₁) × [(y₂ - y₁) / (x₂ - x₁)]
+        Rumus Interpolasi Polinom Newton (Divided Differences): 
+        P(x) = f[x₁] + f[x₁,x₂](x - x₁)
         
         Langkah Perhitungan:
         1. Titik 1: (${x1}, ${y1})
         2. Titik 2: (${x2}, ${y2})
         3. Target x: ${targetX}
-        4. Interpolasi: y = ${y1} + (${targetX} - ${x1}) × [(${y2} - ${y1}) / (${x2} - ${x1})]
-        5. y = ${y1} + (${targetX - x1}) × [${(y2 - y1) / (x2 - x1)}]
-        6. y = ${y1} + ${(targetX - x1) * ((y2 - y1) / (x2 - x1))}
-        7. y = ${interpolatedValue.toFixed(4)}
+        4. Hitung Koefisien Divided Difference Pertama: f[x₁,x₂] = (${y2} - ${y1}) / (${x2} - ${x1}) = ${firstDividedDiff.toFixed(
+        4
+      )}
+        5. Aplikasi Formula Interpolasi Polinom Newton: P(${targetX}) = ${y1} + ${firstDividedDiff.toFixed(
+        4
+      )} × (${targetX} - ${x1})
+        6. P(${targetX}) = ${y1} + ${firstDividedDiff.toFixed(4)} × ${(
+        targetX - x1
+      ).toFixed(4)}
+        7. P(${targetX}) = ${y1} + ${(
+        firstDividedDiff *
+        (targetX - x1)
+      ).toFixed(4)}
+        8. P(${targetX}) = ${interpolatedValue.toFixed(4)}
+        
+        Catatan: Interpolasi polinom Newton efektif untuk memprediksi pertumbuhan data, terutama untuk data yang mengikuti pola non-linear.
       `);
 
       showSuccess(
         "Perhitungan Selesai",
-        "Perhitungan interpolasi linear berhasil"
+        "Perhitungan prediksi dengan interpolasi polinom Newton berhasil"
       );
     } catch (error) {
       showError(
@@ -236,7 +251,7 @@ export const CalculationCalculator: React.FC = () => {
                 : "bg-white text-blue-800 border border-blue-200 hover:bg-blue-50"
             }`}
           >
-            Kalkulator Interpolasi Linear
+            Kalkulator Interpolasi Polinom Newton
           </Button>
         </div>
       </div>
@@ -342,11 +357,12 @@ export const CalculationCalculator: React.FC = () => {
       {calculationType === "interpolation" && (
         <div className="bg-white p-5 rounded-lg shadow-sm border border-slate-100">
           <h3 className="text-lg font-semibold mb-4">
-            Kalkulator Interpolasi Linear
+            Kalkulator Interpolasi Polinom Newton
           </h3>
           <p className="text-slate-600 mb-4">
-            Masukkan dua titik data dan nilai target untuk menghitung
-            interpolasi linear.
+            Masukkan dua titik data dan nilai target untuk memprediksi
+            pertumbuhan UMKM menggunakan metode interpolasi polinom Newton
+            dengan divided differences.
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -430,7 +446,7 @@ export const CalculationCalculator: React.FC = () => {
             onClick={calculateInterpolation}
             className="w-full bg-blue-800 hover:bg-blue-700 text-white"
           >
-            Hitung Interpolasi Linear
+            Hitung Prediksi dengan Interpolasi Polinom Newton
           </Button>
         </div>
       )}

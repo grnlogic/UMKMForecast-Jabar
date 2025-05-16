@@ -61,6 +61,56 @@ export const ModelComparison: React.FC = () => {
     removeComparisonDataPoint(index);
   };
 
+  // Helper function to calculate divided differences table
+  const calculateDividedDifferences = (data: DataPoint[]) => {
+    const n = data.length;
+    const result: { order: number; value: number }[] = [];
+
+    // Zero-order differences (original function values)
+    result.push({ order: 0, value: data[0].count });
+
+    // Calculate divided differences of various orders
+    const diffs: number[][] = [];
+
+    // First-order differences
+    diffs[0] = [];
+    for (let i = 0; i < n - 1; i++) {
+      diffs[0][i] =
+        (data[i + 1].count - data[i].count) / (data[i + 1].year - data[i].year);
+    }
+    result.push({ order: 1, value: diffs[0][0] });
+
+    // Higher-order differences
+    for (let order = 1; order < n - 1; order++) {
+      diffs[order] = [];
+      for (let i = 0; i < n - order - 1; i++) {
+        diffs[order][i] =
+          (diffs[order - 1][i + 1] - diffs[order - 1][i]) /
+          (data[i + order + 1].year - data[i].year);
+      }
+      result.push({ order: order + 1, value: diffs[order][0] });
+    }
+
+    return result;
+  };
+
+  // Fungsi untuk menghitung interpolasi Newton dengan polynomial
+  const newtonInterpolation = (
+    x: number,
+    data: DataPoint[],
+    diffTable: { order: number; value: number }[]
+  ) => {
+    let result = diffTable[0].value; // f[x0]
+    let term = 1;
+
+    for (let i = 1; i < diffTable.length; i++) {
+      term *= x - data[i - 1].year;
+      result += diffTable[i].value * term;
+    }
+
+    return result;
+  };
+
   const calculatePredictions = () => {
     if (comparisonData.length < 2 || !futureYear) return;
 
@@ -80,14 +130,15 @@ export const ModelComparison: React.FC = () => {
       0
     );
 
-    const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
-    const intercept = (sumY - slope * sumX) / n;
+    // Rumus regresi linier y = ax + b
+    const a = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX); // slope
+    const b = (sumY - a * sumX) / n; // intercept
 
     // Menghitung prediksi regresi
-    const regressionValue = slope * futureYearNum + intercept;
+    const regressionValue = a * futureYearNum + b;
     setRegressionResult(Math.round(regressionValue));
 
-    // Use interpolation data if available
+    // Use interpolation data if available from the form
     if (startYear && startCount && endYear && endCount) {
       const startYearNum = Number.parseInt(startYear);
       const startCountNum = Number.parseInt(startCount);
@@ -100,28 +151,45 @@ export const ModelComparison: React.FC = () => {
         !isNaN(endYearNum) &&
         !isNaN(endCountNum)
       ) {
-        // Calculate interpolation with the data from the interpolation section
+        // Implement Newton's Divided Differences Interpolation
+        // First divided difference
+        const firstDividedDiff =
+          (endCountNum - startCountNum) / (endYearNum - startYearNum);
+
+        // Newton's interpolation formula
         const interpolatedValue =
-          startCountNum +
-          (futureYearNum - startYearNum) *
-            ((endCountNum - startCountNum) / (endYearNum - startYearNum));
+          startCountNum + firstDividedDiff * (futureYearNum - startYearNum);
 
         setInterpolationResult(Math.round(interpolatedValue));
       }
     } else {
-      // Untuk interpolasi, kita perlu menemukan titik-titik terdekat
-      // Jika tahun target berada di luar jangkauan, kita akan menggunakan ekstrapolasi
+      // Untuk interpolasi Newton dengan divided differences menggunakan semua data perbandingan
       const sortedData = [...comparisonData].sort((a, b) => a.year - b.year);
 
-      if (futureYearNum <= sortedData[0].year) {
-        // Ekstrapolasi sebelum titik pertama
+      if (sortedData.length >= 2) {
+        // Buat tabel divided differences
+        const differencesTable = calculateDividedDifferences(sortedData);
+
+        // Gunakan fungsi Newton Polynomial untuk interpolasi/ekstrapolasi
+        const interpolatedValue = newtonInterpolation(
+          futureYearNum,
+          sortedData,
+          differencesTable
+        );
+
+        setInterpolationResult(Math.round(interpolatedValue));
+      } else if (futureYearNum <= sortedData[0].year) {
+        // Jika hanya ada 1 titik data atau target di luar jangkauan, gunakan ekstrapolasi sederhana
         const x1 = sortedData[0].year;
         const y1 = sortedData[0].count;
         const x2 = sortedData[1].year;
         const y2 = sortedData[1].count;
 
-        const interpolatedValue =
-          y1 + (futureYearNum - x1) * ((y2 - y1) / (x2 - x1));
+        // First divided difference
+        const firstDividedDiff = (y2 - y1) / (x2 - x1);
+
+        // Basic extrapolation
+        const interpolatedValue = y1 + firstDividedDiff * (futureYearNum - x1);
         setInterpolationResult(Math.round(interpolatedValue));
       } else if (futureYearNum >= sortedData[sortedData.length - 1].year) {
         // Ekstrapolasi setelah titik terakhir
@@ -130,11 +198,14 @@ export const ModelComparison: React.FC = () => {
         const x2 = sortedData[sortedData.length - 1].year;
         const y2 = sortedData[sortedData.length - 1].count;
 
-        const interpolatedValue =
-          y1 + (futureYearNum - x1) * ((y2 - y1) / (x2 - x1));
+        // First divided difference
+        const firstDividedDiff = (y2 - y1) / (x2 - x1);
+
+        // Basic extrapolation
+        const interpolatedValue = y1 + firstDividedDiff * (futureYearNum - x1);
         setInterpolationResult(Math.round(interpolatedValue));
       } else {
-        // Interpolasi antara titik-titik
+        // Find nearest points for calculation if can't use full Newton method
         let lowerPoint: DataPoint | null = null;
         let upperPoint: DataPoint | null = null;
 
@@ -150,11 +221,15 @@ export const ModelComparison: React.FC = () => {
         }
 
         if (lowerPoint && upperPoint) {
+          // First divided difference
+          const firstDividedDiff =
+            (upperPoint.count - lowerPoint.count) /
+            (upperPoint.year - lowerPoint.year);
+
+          // Newton's interpolation formula (simplified)
           const interpolatedValue =
             lowerPoint.count +
-            (futureYearNum - lowerPoint.year) *
-              ((upperPoint.count - lowerPoint.count) /
-                (upperPoint.year - lowerPoint.year));
+            firstDividedDiff * (futureYearNum - lowerPoint.year);
 
           setInterpolationResult(Math.round(interpolatedValue));
         }
@@ -182,7 +257,7 @@ export const ModelComparison: React.FC = () => {
 
     // Prepare data for Chart.js
     const chartData = {
-      labels: ["Regresi Linear", "Interpolasi Linear"],
+      labels: ["Regresi Linear", "Interpolasi Polinom Newton"],
       datasets: [
         {
           label: "Jumlah UMKM Prediksi",
@@ -377,7 +452,9 @@ export const ModelComparison: React.FC = () => {
                   </p>
                 </div>
                 <div className="p-3 bg-green-50 rounded">
-                  <h5 className="font-medium">Prediksi Interpolasi Linear</h5>
+                  <h5 className="font-medium">
+                    Prediksi Interpolasi Polinom Newton
+                  </h5>
                   <p className="text-xl font-bold text-green-600 mt-1">
                     {interpolationResult.toLocaleString()} UMKM
                   </p>

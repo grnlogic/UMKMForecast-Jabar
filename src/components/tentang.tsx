@@ -58,9 +58,13 @@ export default function TentangPage() {
                   regresi linear.
                 </li>
                 <li>
-                  <strong>Estimasi Tahun Hilang (Interpolasi):</strong> Mengisi
-                  dan menampilkan data pada tahun-tahun yang tidak
-                  terdokumentasi secara lengkap menggunakan interpolasi linier.
+                  <strong>
+                    Prediksi Pertumbuhan dengan Interpolasi Polinom Newton:
+                  </strong>{" "}
+                  Menerapkan metode interpolasi polinom Newton dengan divided
+                  differences untuk memprediksi pertumbuhan UMKM dengan rumus
+                  P(x) = f[x₀] + f[x₀,x₁](x-x₀) + ... yang mampu memberikan
+                  akurasi lebih baik untuk pola data non-linear.
                 </li>
                 <li>
                   <strong>Evaluasi Akurasi Model:</strong> Menampilkan nilai

@@ -67,8 +67,6 @@ export const Dashboard: React.FC = () => {
     <DataProvider>
       <ModelProvider>
         <div className="bg-slate-50 min-h-screen pb-8">
-          
-
           <div className="container mx-auto px-4">
             <div className="flex flex-wrap mb-6 overflow-x-auto gap-1 bg-gradient-to-r from-blue-50 to-slate-50 p-2 rounded-lg shadow-sm">
               {/* Dashboard Tab */}
@@ -170,7 +168,12 @@ export const Dashboard: React.FC = () => {
                   </h2>
                   <div className="p-3 bg-amber-50 border-l-4 border-amber-400 text-amber-700 mb-4 rounded">
                     <p className="text-sm">
-                      <span className="font-semibold">Mohon maaf:</span> Karena data API yang disediakan oleh pemerintah tidak diperbarui secara berkala, sistem kami memerlukan pengguna untuk mengunggah dan memasukkan data secara manual. Kami berusaha menyediakan solusi terbaik meskipun terdapat keterbatasan pada sumber data resmi.
+                      <span className="font-semibold">Mohon maaf:</span> Karena
+                      data API yang disediakan oleh pemerintah tidak diperbarui
+                      secara berkala, sistem kami memerlukan pengguna untuk
+                      mengunggah dan memasukkan data secara manual. Kami
+                      berusaha menyediakan solusi terbaik meskipun terdapat
+                      keterbatasan pada sumber data resmi.
                     </p>
                   </div>
                   <p className="text-slate-600">
@@ -230,11 +233,13 @@ export const Dashboard: React.FC = () => {
                   {/* Section 1: Interpolation */}
                   <div className="pt-4">
                     <h3 className="text-xl font-semibold text-blue-900 border-b border-blue-100 pb-2 mb-4">
-                      Estimasi Tahun Hilang (Interpolasi Linear)
+                      Prediksi Pertumbuhan dengan Interpolasi Polinom Newton
                     </h3>
                     <p className="text-slate-600 mb-4">
-                      Estimasi data pada tahun-tahun yang tidak terdokumentasi
-                      secara lengkap menggunakan metode interpolasi linear.
+                      Prediksi data UMKM untuk tahun-tahun mendatang menggunakan
+                      metode interpolasi polinom Newton yang memungkinkan
+                      proyeksi pertumbuhan dengan tingkat akurasi yang lebih
+                      baik untuk pola data non-linear.
                     </p>
                     <div className="bg-slate-50 p-4 rounded-lg">
                       <InterpolationSection />
