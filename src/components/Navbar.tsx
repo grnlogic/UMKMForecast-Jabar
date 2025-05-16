@@ -1,5 +1,6 @@
 import type React from "react";
 import { useState } from "react";
+import Logo from "../image/logo.jpeg"
 import { AboutModal } from "./AboutModal";
 
 export const Navbar: React.FC = () => {
@@ -14,7 +15,7 @@ export const Navbar: React.FC = () => {
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
                 <img
-                  src="/placeholder.svg?height=32&width=32"
+                  src={Logo}
                   alt="Logo"
                   className="h-7 w-7"
                 />
