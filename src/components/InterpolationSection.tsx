@@ -1,125 +1,107 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { useModelData } from "../contexts/ModelContext";
 
 export const InterpolationSection: React.FC = () => {
-  const {
-    startYear,
-    setStartYear,
-    startCount,
-    setStartCount,
-    endYear,
-    setEndYear,
-    endCount,
-    setEndCount,
-    targetYearInterpolation: targetYear,
-    setTargetYearInterpolation: setTargetYear,
-    interpolationResult,
-    setInterpolationResult,
-  } = useModelData();
+  // State untuk data dinamis
+  const [dataRows, setDataRows] = useState<{ year: string; count: string }[]>([
+    { year: "", count: "" },
+    { year: "", count: "" },
+  ]);
+  const [targetYear, setTargetYear] = useState<string>("");
+  const [interpolationResult, setInterpolationResult] = useState<number | null>(
+    null
+  );
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  const calculateInterpolation = () => {
-    if (!startYear || !startCount || !endYear || !endCount || !targetYear)
-      return;
+  // Fungsi tambah/hapus baris data
+  const addRow = () => setDataRows([...dataRows, { year: "", count: "" }]);
+  const removeRow = (idx: number) => {
+    if (dataRows.length <= 2) return;
+    setDataRows(dataRows.filter((_, i) => i !== idx));
+  };
+  const updateRow = (idx: number, field: "year" | "count", value: string) => {
+    setDataRows(
+      dataRows.map((row, i) => (i === idx ? { ...row, [field]: value } : row))
+    );
+  };
 
-    const startYearNum = Number.parseInt(startYear);
-    const startCountNum = Number.parseInt(startCount);
-    const endYearNum = Number.parseInt(endYear);
-    const endCountNum = Number.parseInt(endCount);
-    const targetYearNum = Number.parseInt(targetYear);
-
-    if (
-      isNaN(startYearNum) ||
-      isNaN(startCountNum) ||
-      isNaN(endYearNum) ||
-      isNaN(endCountNum) ||
-      isNaN(targetYearNum)
-    )
-      return;
-
-    // Check if target year is between start and end years
-    if (targetYearNum <= startYearNum || targetYearNum >= endYearNum) {
-      alert(
-        "Perhatian: Nilai target berada di luar rentang data yang dimasukkan. Hasil merupakan prediksi menggunakan interpolasi polinom Newton."
-      );
-    }
-
-    // Data points for interpolation
-    const points = [
-      { x: startYearNum, y: startCountNum },
-      { x: endYearNum, y: endCountNum },
-    ];
-
-    // Calculate divided differences table - inti dari metode polinom Newton
-    const n = points.length;
-    const dividedDiff: number[][] = Array(n)
-      .fill(0)
-      .map(() => Array(n).fill(0));
-
-    // Isi kolom pertama dengan nilai-nilai f(x)
-    for (let i = 0; i < n; i++) {
-      dividedDiff[i][0] = points[i].y;
-    }
-
-    // Hitung tabel divided differences
+  // Perhitungan interpolasi Newton (divided differences)
+  function dividedDiff(x: number[], y: number[]) {
+    const n = x.length;
+    const coef = [...y];
     for (let j = 1; j < n; j++) {
-      for (let i = 0; i < n - j; i++) {
-        dividedDiff[i][j] =
-          (dividedDiff[i + 1][j - 1] - dividedDiff[i][j - 1]) /
-          (points[i + j].x - points[i].x);
+      for (let i = n - 1; i >= j; i--) {
+        coef[i] = (coef[i] - coef[i - 1]) / (x[i] - x[i - j]);
       }
     }
-
-    // Aplikasi formula Newton untuk interpolasi/ekstrapolasi
-    let result = dividedDiff[0][0]; // f[x₀]
+    return coef;
+  }
+  function newtonPoly(coef: number[], xData: number[], xVal: number) {
+    let result = coef[0];
     let term = 1;
-
-    for (let i = 1; i < n; i++) {
-      term *= targetYearNum - points[i - 1].x;
-      result += dividedDiff[0][i] * term;
+    for (let i = 1; i < coef.length; i++) {
+      term *= xVal - xData[i - 1];
+      result += coef[i] * term;
     }
+    return result;
+  }
 
+  // Hitung prediksi
+  const calculateInterpolation = () => {
+    const x = dataRows.map((r) => Number(r.year));
+    const y = dataRows.map((r) => Number(r.count));
+    const tYear = Number(targetYear);
+    if (
+      x.some(isNaN) ||
+      y.some(isNaN) ||
+      isNaN(tYear) ||
+      new Set(x).size !== x.length // tahun tidak boleh duplikat
+    ) {
+      setInterpolationResult(null);
+      return;
+    }
+    // Urutkan data berdasarkan tahun
+    const zipped = x
+      .map((v, i) => ({ year: v, count: y[i] }))
+      .sort((a, b) => a.year - b.year);
+    const xSorted = zipped.map((z) => z.year);
+    const ySorted = zipped.map((z) => z.count);
+    const coef = dividedDiff(xSorted, ySorted);
+    const result = newtonPoly(coef, xSorted, tYear);
     setInterpolationResult(Math.round(result));
-
-    // Detail perhitungan untuk developer
-    console.log(`Prediksi dengan Interpolasi Polinom Newton:
-      - Tabel divided differences:
-        ${JSON.stringify(dividedDiff)}
-      - Titik data: ${JSON.stringify(points)}
-      - Titik prediksi: ${targetYearNum}
-      - Formula umum: P(x) = f[x₀] + f[x₀,x₁](x-x₀) + f[x₀,x₁,x₂](x-x₀)(x-x₁) + ... 
-      - Untuk 2 titik: P(x) = ${dividedDiff[0][0]} + ${dividedDiff[0][1]}(x-${
-      points[0].x
-    })
-      - Hasil: ${result}
-    `);
   };
+
+  // Otomatis hitung jika data berubah
+  useEffect(() => {
+    if (targetYear && dataRows.every((r) => r.year && r.count)) {
+      calculateInterpolation();
+    } else {
+      setInterpolationResult(null);
+    }
+    // eslint-disable-next-line
+  }, [dataRows, targetYear]);
 
   // Draw interpolation chart
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !startYear || !startCount || !endYear || !endCount) return;
+    if (!canvas || !dataRows.every((r) => r.year && r.count)) return;
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     // Parse input values
-    const startYearNum = Number.parseInt(startYear);
-    const startCountNum = Number.parseInt(startCount);
-    const endYearNum = Number.parseInt(endYear);
-    const endCountNum = Number.parseInt(endCount);
+    const xData = dataRows.map((r) => Number(r.year));
+    const yData = dataRows.map((r) => Number(r.count));
     const targetYearNum = targetYear ? Number.parseInt(targetYear) : null;
 
     if (
-      isNaN(startYearNum) ||
-      isNaN(startCountNum) ||
-      isNaN(endYearNum) ||
-      isNaN(endCountNum) ||
+      xData.some(isNaN) ||
+      yData.some(isNaN) ||
       (targetYear && isNaN(targetYearNum!))
     )
       return;
@@ -149,11 +131,11 @@ export const InterpolationSection: React.FC = () => {
     const marginRight = 30;
 
     // Find min and max values for scaling with improved padding
-    const minYear = Math.min(startYearNum, endYearNum) - 1;
-    const maxYear = Math.max(startYearNum, endYearNum) + 1;
+    const minYear = Math.min(...xData) - 1;
+    const maxYear = Math.max(...xData) + 1;
     const yearRange = maxYear - minYear;
 
-    const allCounts = [startCountNum, endCountNum];
+    const allCounts = [...yData];
     if (interpolationResult !== null && targetYearNum) {
       allCounts.push(interpolationResult);
     }
@@ -257,19 +239,19 @@ export const InterpolationSection: React.FC = () => {
     const getY = (count: number) =>
       marginTop + chartHeight - ((count - minCount) / countRange) * chartHeight;
 
-    const startX = getX(startYearNum);
-    const startY = getY(startCountNum);
-    const endX = getX(endYearNum);
-    const endY = getY(endCountNum);
-
     // Draw line between points with gradient
-    const gradient = ctx.createLinearGradient(startX, startY, endX, endY);
+    const gradient = ctx.createLinearGradient(
+      marginLeft,
+      marginTop + chartHeight,
+      marginLeft + chartWidth,
+      marginTop
+    );
     gradient.addColorStop(0, "#3b82f6");
     gradient.addColorStop(1, "#2563eb");
 
     ctx.beginPath();
-    ctx.moveTo(startX, startY);
-    ctx.lineTo(endX, endY);
+    ctx.moveTo(getX(xData[0]), getY(yData[0]));
+    ctx.lineTo(getX(xData[xData.length - 1]), getY(yData[yData.length - 1]));
     ctx.strokeStyle = gradient;
     ctx.lineWidth = 3;
     ctx.stroke();
@@ -290,8 +272,9 @@ export const InterpolationSection: React.FC = () => {
       ctx.stroke();
     };
 
-    drawPoint(startX, startY, "#3b82f6");
-    drawPoint(endX, endY, "#3b82f6");
+    xData.forEach((year, i) => {
+      drawPoint(getX(year), getY(yData[i]), "#3b82f6");
+    });
 
     // Draw labels for start and end points with improved styling
     ctx.fillStyle = "#1e293b";
@@ -328,17 +311,13 @@ export const InterpolationSection: React.FC = () => {
       ctx.fillText(text, x, y - 24);
     };
 
-    drawPointLabel(
-      startX,
-      startY,
-      `${startYearNum}: ${startCountNum.toLocaleString()}`
-    );
-
-    drawPointLabel(
-      endX,
-      endY,
-      `${endYearNum}: ${endCountNum.toLocaleString()}`
-    );
+    xData.forEach((year, i) => {
+      drawPointLabel(
+        getX(year),
+        getY(yData[i]),
+        `${year}: ${yData[i].toLocaleString()}`
+      );
+    });
 
     // Draw extrapolation/interpolation point if available
     if (interpolationResult !== null && targetYearNum) {
@@ -421,14 +400,7 @@ export const InterpolationSection: React.FC = () => {
       marginLeft + chartWidth / 2,
       marginTop + chartHeight + 45
     );
-  }, [
-    startYear,
-    startCount,
-    endYear,
-    endCount,
-    targetYear,
-    interpolationResult,
-  ]);
+  }, [dataRows, targetYear, interpolationResult]);
 
   // Handle window resize
   useEffect(() => {
@@ -462,68 +434,147 @@ export const InterpolationSection: React.FC = () => {
         <h3 className="text-xl font-semibold text-blue-900 border-b border-blue-100 pb-2 mb-4">
           Data Tahun Referensi
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              Tahun Awal
-            </label>
-            <Input
-              type="number"
-              value={startYear}
-              onChange={(e) => setStartYear(e.target.value)}
-              placeholder="Contoh: 2015"
-              className="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              Jumlah UMKM Tahun Awal
-            </label>
-            <Input
-              type="number"
-              value={startCount}
-              onChange={(e) => setStartCount(e.target.value)}
-              placeholder="Contoh: 120000"
-              className="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              Tahun Akhir
-            </label>
-            <Input
-              type="number"
-              value={endYear}
-              onChange={(e) => setEndYear(e.target.value)}
-              placeholder="Contoh: 2020"
-              className="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              Jumlah UMKM Tahun Akhir
-            </label>
-            <Input
-              type="number"
-              value={endCount}
-              onChange={(e) => setEndCount(e.target.value)}
-              placeholder="Contoh: 175000"
-              className="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
+        {/* Tabel input dinamis */}
+        <div className="overflow-x-auto mb-4">
+          <table className="min-w-[320px] w-full border border-slate-200 rounded text-sm">
+            <thead>
+              <tr className="bg-blue-50 text-blue-900">
+                <th className="px-3 py-2 border-b border-slate-200">Tahun</th>
+                <th className="px-3 py-2 border-b border-slate-200">
+                  Jumlah UMKM
+                </th>
+                <th className="px-3 py-2 border-b border-slate-200">Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              {dataRows.map((row, idx) => (
+                <tr key={idx}>
+                  <td className="px-3 py-2 border-b border-slate-100">
+                    <Input
+                      type="number"
+                      value={row.year}
+                      onChange={(e) => updateRow(idx, "year", e.target.value)}
+                      placeholder="Tahun"
+                    />
+                  </td>
+                  <td className="px-3 py-2 border-b border-slate-100">
+                    <Input
+                      type="number"
+                      value={row.count}
+                      onChange={(e) => updateRow(idx, "count", e.target.value)}
+                      placeholder="Jumlah UMKM"
+                    />
+                  </td>
+                  <td className="px-3 py-2 border-b border-slate-100">
+                    <Button
+                      onClick={() => removeRow(idx)}
+                      className="text-xs bg-red-100 text-red-700 hover:bg-red-200"
+                      disabled={dataRows.length <= 2}
+                    >
+                      Hapus
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <Button
+            onClick={addRow}
+            className="mt-2 bg-green-600 hover:bg-green-700 text-white text-sm"
+          >
+            Tambah Baris
+          </Button>
         </div>
       </div>
 
-      {startYear && startCount && endYear && endCount && (
+      {/* Rumus dan chart tetap */}
+      {dataRows.every((r) => r.year && r.count) && (
         <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-100 overflow-hidden">
           <h3 className="text-xl font-semibold text-blue-900 mb-4">
             Visualisasi Prediksi dengan Interpolasi Polinom Newton
           </h3>
+          {/* Rumus asli interpolasi Newton */}
+          <div className="mb-4">
+            <div className="bg-blue-50 border-l-4 border-blue-700 p-4 rounded">
+              <div className="font-semibold text-blue-900 mb-2">
+                Rumus Interpolasi Polinom Newton:
+              </div>
+              <div className="text-slate-700 text-base font-mono">
+                <span>
+                  P(x) = f[x₀] + f[x₀,x₁](x-x₀) + f[x₀,x₁,x₂](x-x₀)(x-x₁) + ...
+                  <br />
+                  <span className="text-xs text-slate-500">
+                    Untuk n data: gunakan semua titik tahun & jumlah UMKM
+                  </span>
+                </span>
+              </div>
+            </div>
+          </div>
           <div className="bg-slate-50 p-4 rounded-lg shadow-inner">
             <canvas
               ref={canvasRef}
               style={{ width: "100%", height: "400px" }}
             ></canvas>
+          </div>
+          {/* Tabel data awal dan hasil prediksi */}
+          <div className="mt-6">
+            <h4 className="font-semibold text-blue-900 mb-2">
+              Tabel Data & Hasil Prediksi
+            </h4>
+            <div className="overflow-x-auto">
+              <table className="min-w-[320px] w-full border border-slate-200 rounded text-sm">
+                <thead>
+                  <tr className="bg-blue-50 text-blue-900">
+                    <th className="px-3 py-2 border-b border-slate-200">
+                      Tahun
+                    </th>
+                    <th className="px-3 py-2 border-b border-slate-200">
+                      Jumlah UMKM
+                    </th>
+                    <th className="px-3 py-2 border-b border-slate-200">
+                      Keterangan
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td className="px-3 py-2 border-b border-slate-100">
+                      {dataRows[0].year}
+                    </td>
+                    <td className="px-3 py-2 border-b border-slate-100">
+                      {Number(dataRows[0].count).toLocaleString()}
+                    </td>
+                    <td className="px-3 py-2 border-b border-slate-100">
+                      Data Awal
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="px-3 py-2 border-b border-slate-100">
+                      {dataRows[1].year}
+                    </td>
+                    <td className="px-3 py-2 border-b border-slate-100">
+                      {Number(dataRows[1].count).toLocaleString()}
+                    </td>
+                    <td className="px-3 py-2 border-b border-slate-100">
+                      Data Akhir
+                    </td>
+                  </tr>
+                  {interpolationResult !== null && targetYear && (
+                    <tr className="bg-green-50 font-semibold">
+                      <td className="px-3 py-2 border-b border-slate-100">
+                        {targetYear}
+                      </td>
+                      <td className="px-3 py-2 border-b border-slate-100 text-green-700">
+                        {Number(interpolationResult).toLocaleString()}
+                      </td>
+                      <td className="px-3 py-2 border-b border-slate-100">
+                        Hasil Prediksi
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
@@ -541,42 +592,14 @@ export const InterpolationSection: React.FC = () => {
               type="number"
               value={targetYear}
               onChange={(e) => setTargetYear(e.target.value)}
-              placeholder="Contoh: 2017"
+              placeholder="Contoh: 2025"
               className="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
             <p className="text-xs text-slate-500 mt-1">
-              Masukkan tahun antara {startYear || "..."} dan {endYear || "..."}
+              Masukkan tahun target prediksi (boleh di luar data)
             </p>
           </div>
-          <div className="flex items-end">
-            <Button
-              onClick={calculateInterpolation}
-              className="px-6 py-2 bg-blue-800 hover:bg-blue-700 text-white rounded-md transition-colors flex items-center"
-              disabled={
-                !startYear ||
-                !startCount ||
-                !endYear ||
-                !endCount ||
-                !targetYear
-              }
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5 mr-2"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              Hitung Prediksi
-            </Button>
-          </div>
         </div>
-
         {interpolationResult !== null && (
           <div className="p-6 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border-l-4 border-blue-800">
             <div className="flex items-center mb-3">
@@ -599,42 +622,14 @@ export const InterpolationSection: React.FC = () => {
               </h4>
             </div>
             <p className="text-slate-600 mb-3">
-              Berdasarkan metode interpolasi polinom Newton dengan divided
-              differences, prediksi jumlah UMKM di Jawa Barat pada tahun{" "}
-              {targetYear} adalah:
+              Berdasarkan interpolasi polinom Newton, prediksi jumlah UMKM pada
+              tahun {targetYear} adalah:
             </p>
             <div className="bg-white p-4 rounded-lg text-center mb-4 shadow-sm">
               <p className="text-3xl font-bold text-blue-800">
                 {interpolationResult.toLocaleString()}
               </p>
               <p className="text-sm text-slate-500">UMKM</p>
-            </div>
-            <div className="flex items-start text-sm text-slate-600">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5 text-blue-700 mr-2 flex-shrink-0 mt-0.5"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              <p>
-                Prediksi ini menggunakan metode interpolasi polinom Newton
-                dengan divided differences. Untuk dua titik data, formula yang
-                digunakan adalah P(x) = f[x₀] + f[x₀,x₁](x-x₀), di mana:
-                <br />- f[x₀] adalah nilai UMKM di tahun awal
-                <br />- f[x₀,x₁] adalah koefisien beda terbagi pertama
-                <br />- x adalah tahun target prediksi
-                <br />
-                <br />
-                Metode ini dapat digunakan untuk interpolasi (prediksi di antara
-                data) maupun ekstrapolasi (prediksi di luar data) dan memberikan
-                hasil yang akurat terutama untuk pola data yang polinom.
-              </p>
             </div>
           </div>
         )}
