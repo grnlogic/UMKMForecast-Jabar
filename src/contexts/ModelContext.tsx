@@ -114,13 +114,26 @@ export const ModelProvider: React.FC<{ children: ReactNode }> = ({
 
   // Function to use umkmData from DataContext in comparisonData
   const syncWithUmkmData = () => {
-    // Ambil seluruh data dari umkmData (bukan hanya satu tahun)
-    setComparisonData(
-      umkmData.map((item) => ({
+    // Changed from useUmkmDataForComparison
+    if (umkmData.length > 0) {
+      const formattedData = umkmData.map((item) => ({
         year: item.year,
         count: item.count,
-      }))
-    );
+      }));
+      setComparisonData(formattedData);
+
+      // If there's data, also update the interpolation data with the min and max years
+      const sorted = [...umkmData].sort((a, b) => a.year - b.year);
+      if (sorted.length >= 2) {
+        const first = sorted[0];
+        const last = sorted[sorted.length - 1];
+
+        setStartYear(first.year.toString());
+        setStartCount(first.count.toString());
+        setEndYear(last.year.toString());
+        setEndCount(last.count.toString());
+      }
+    }
   };
 
   const addComparisonDataPoint = (year: number, count: number) => {

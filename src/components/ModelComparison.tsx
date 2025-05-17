@@ -138,24 +138,103 @@ export const ModelComparison: React.FC = () => {
     const regressionValue = a * futureYearNum + b;
     setRegressionResult(Math.round(regressionValue));
 
-    // --- Perbaikan utama di bawah ini ---
-    // Selalu gunakan interpolasi Newton dengan seluruh data jika data >= 2
-    const sortedData = [...comparisonData].sort((a, b) => a.year - b.year);
+    // Use interpolation data if available from the form
+    if (startYear && startCount && endYear && endCount) {
+      const startYearNum = Number.parseInt(startYear);
+      const startCountNum = Number.parseInt(startCount);
+      const endYearNum = Number.parseInt(endYear);
+      const endCountNum = Number.parseInt(endCount);
 
-    if (sortedData.length >= 2) {
-      // Buat tabel divided differences
-      const differencesTable = calculateDividedDifferences(sortedData);
+      if (
+        !isNaN(startYearNum) &&
+        !isNaN(startCountNum) &&
+        !isNaN(endYearNum) &&
+        !isNaN(endCountNum)
+      ) {
+        // Implement Newton's Divided Differences Interpolation
+        // First divided difference
+        const firstDividedDiff =
+          (endCountNum - startCountNum) / (endYearNum - startYearNum);
 
-      // Gunakan fungsi Newton Polynomial untuk interpolasi/ekstrapolasi
-      const interpolatedValue = newtonInterpolation(
-        futureYearNum,
-        sortedData,
-        differencesTable
-      );
+        // Newton's interpolation formula
+        const interpolatedValue =
+          startCountNum + firstDividedDiff * (futureYearNum - startYearNum);
 
-      setInterpolationResult(Math.round(interpolatedValue));
+        setInterpolationResult(Math.round(interpolatedValue));
+      }
+    } else {
+      // Untuk interpolasi Newton dengan divided differences menggunakan semua data perbandingan
+      const sortedData = [...comparisonData].sort((a, b) => a.year - b.year);
+
+      if (sortedData.length >= 2) {
+        // Buat tabel divided differences
+        const differencesTable = calculateDividedDifferences(sortedData);
+
+        // Gunakan fungsi Newton Polynomial untuk interpolasi/ekstrapolasi
+        const interpolatedValue = newtonInterpolation(
+          futureYearNum,
+          sortedData,
+          differencesTable
+        );
+
+        setInterpolationResult(Math.round(interpolatedValue));
+      } else if (futureYearNum <= sortedData[0].year) {
+        // Jika hanya ada 1 titik data atau target di luar jangkauan, gunakan ekstrapolasi sederhana
+        const x1 = sortedData[0].year;
+        const y1 = sortedData[0].count;
+        const x2 = sortedData[1].year;
+        const y2 = sortedData[1].count;
+
+        // First divided difference
+        const firstDividedDiff = (y2 - y1) / (x2 - x1);
+
+        // Basic extrapolation
+        const interpolatedValue = y1 + firstDividedDiff * (futureYearNum - x1);
+        setInterpolationResult(Math.round(interpolatedValue));
+      } else if (futureYearNum >= sortedData[sortedData.length - 1].year) {
+        // Ekstrapolasi setelah titik terakhir
+        const x1 = sortedData[sortedData.length - 2].year;
+        const y1 = sortedData[sortedData.length - 2].count;
+        const x2 = sortedData[sortedData.length - 1].year;
+        const y2 = sortedData[sortedData.length - 1].count;
+
+        // First divided difference
+        const firstDividedDiff = (y2 - y1) / (x2 - x1);
+
+        // Basic extrapolation
+        const interpolatedValue = y1 + firstDividedDiff * (futureYearNum - x1);
+        setInterpolationResult(Math.round(interpolatedValue));
+      } else {
+        // Find nearest points for calculation if can't use full Newton method
+        let lowerPoint: DataPoint | null = null;
+        let upperPoint: DataPoint | null = null;
+
+        for (let i = 0; i < sortedData.length - 1; i++) {
+          if (
+            futureYearNum >= sortedData[i].year &&
+            futureYearNum <= sortedData[i + 1].year
+          ) {
+            lowerPoint = sortedData[i];
+            upperPoint = sortedData[i + 1];
+            break;
+          }
+        }
+
+        if (lowerPoint && upperPoint) {
+          // First divided difference
+          const firstDividedDiff =
+            (upperPoint.count - lowerPoint.count) /
+            (upperPoint.year - lowerPoint.year);
+
+          // Newton's interpolation formula (simplified)
+          const interpolatedValue =
+            lowerPoint.count +
+            firstDividedDiff * (futureYearNum - lowerPoint.year);
+
+          setInterpolationResult(Math.round(interpolatedValue));
+        }
+      }
     }
-    // ...jika ingin tetap mendukung mode dua titik manual, tambahkan else di sini...
   };
 
   // Fungsi untuk membuat atau memperbarui grafik perbandingan

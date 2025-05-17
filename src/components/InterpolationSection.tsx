@@ -1,9 +1,21 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { useModelData } from "../contexts/ModelContext";
+// Tambahkan import recharts
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  Label,
+} from "recharts";
 
 export const InterpolationSection: React.FC = () => {
   // State untuk data dinamis
@@ -16,7 +28,19 @@ export const InterpolationSection: React.FC = () => {
     null
   );
 
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const { comparisonData } = useModelData();
+
+  // Fungsi untuk mengisi dataRows dari comparisonData
+  const useImportedData = () => {
+    if (comparisonData.length >= 2) {
+      setDataRows(
+        comparisonData.map((d) => ({
+          year: d.year.toString(),
+          count: d.count.toString(),
+        }))
+      );
+    }
+  };
 
   // Fungsi tambah/hapus baris data
   const addRow = () => setDataRows([...dataRows, { year: "", count: "" }]);
@@ -33,13 +57,19 @@ export const InterpolationSection: React.FC = () => {
   // Perhitungan interpolasi Newton (divided differences)
   function dividedDiff(x: number[], y: number[]) {
     const n = x.length;
-    const coef = [...y];
+    // Buat tabel 2D untuk divided differences
+    const table: number[][] = Array.from({ length: n }, () => Array(n).fill(0));
+    for (let i = 0; i < n; i++) {
+      table[i][0] = y[i];
+    }
     for (let j = 1; j < n; j++) {
-      for (let i = n - 1; i >= j; i--) {
-        coef[i] = (coef[i] - coef[i - 1]) / (x[i] - x[i - j]);
+      for (let i = 0; i < n - j; i++) {
+        table[i][j] =
+          (table[i + 1][j - 1] - table[i][j - 1]) / (x[i + j] - x[i]);
       }
     }
-    return coef;
+    // Ambil koefisien diagonal atas (f[x0], f[x0,x1], f[x0,x1,x2], ...)
+    return Array.from({ length: n }, (_, i) => table[0][i]);
   }
   function newtonPoly(coef: number[], xData: number[], xVal: number) {
     let result = coef[0];
@@ -86,347 +116,36 @@ export const InterpolationSection: React.FC = () => {
     // eslint-disable-next-line
   }, [dataRows, targetYear]);
 
-  // Draw interpolation chart
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || !dataRows.every((r) => r.year && r.count)) return;
+  // Siapkan data untuk recharts
+  // Ambil data aktual, lalu tambahkan prediksi hanya jika tahun prediksi belum ada di data aktual
+  const actualData = dataRows
+    .filter((r) => r.year && r.count)
+    .map((r) => ({
+      year: Number(r.year),
+      count: Number(r.count),
+      type: "actual",
+    }));
 
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+  // Cek apakah tahun prediksi sudah ada di data aktual
+  const predYearNum = targetYear ? Number(targetYear) : null;
+  const hasPrediksi =
+    interpolationResult !== null &&
+    predYearNum !== null &&
+    !actualData.some((d) => d.year === predYearNum);
 
-    // Parse input values
-    const xData = dataRows.map((r) => Number(r.year));
-    const yData = dataRows.map((r) => Number(r.count));
-    const targetYearNum = targetYear ? Number.parseInt(targetYear) : null;
-
-    if (
-      xData.some(isNaN) ||
-      yData.some(isNaN) ||
-      (targetYear && isNaN(targetYearNum!))
-    )
-      return;
-
-    // Canvas setup with high-resolution scaling for crisp rendering
-    const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
-    ctx.scale(dpr, dpr);
-    canvas.style.width = `${rect.width}px`;
-    canvas.style.height = `${rect.height}px`;
-
-    // Clear canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Set background
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // Improved chart dimensions with better margins
-    const chartWidth = rect.width - 100;
-    const chartHeight = 320;
-    const marginLeft = 70;
-    const marginTop = 50;
-    const marginBottom = 60;
-    const marginRight = 30;
-
-    // Find min and max values for scaling with improved padding
-    const minYear = Math.min(...xData) - 1;
-    const maxYear = Math.max(...xData) + 1;
-    const yearRange = maxYear - minYear;
-
-    const allCounts = [...yData];
-    if (interpolationResult !== null && targetYearNum) {
-      allCounts.push(interpolationResult);
-    }
-    const minCount = Math.min(...allCounts) * 0.9; // 10% padding
-    const maxCount = Math.max(...allCounts) * 1.1; // 10% padding
-    const countRange = maxCount - minCount;
-
-    // Draw background grid
-    ctx.strokeStyle = "#f1f5f9";
-    ctx.lineWidth = 1;
-
-    // Horizontal grid lines
-    const yTickCount = 6;
-    for (let i = 0; i <= yTickCount; i++) {
-      const y = marginTop + ((yTickCount - i) / yTickCount) * chartHeight;
-      ctx.beginPath();
-      ctx.moveTo(marginLeft, y);
-      ctx.lineTo(marginLeft + chartWidth, y);
-      ctx.stroke();
-    }
-
-    // Vertical grid lines
-    const xTickCount = yearRange > 5 ? yearRange : 5;
-    for (let i = 0; i <= xTickCount; i++) {
-      const x = marginLeft + (i / xTickCount) * chartWidth;
-      ctx.beginPath();
-      ctx.moveTo(x, marginTop);
-      ctx.lineTo(x, marginTop + chartHeight);
-      ctx.stroke();
-    }
-
-    // Draw axes with improved styling
-    ctx.beginPath();
-    ctx.moveTo(marginLeft, marginTop);
-    ctx.lineTo(marginLeft, marginTop + chartHeight);
-    ctx.lineTo(marginLeft + chartWidth, marginTop + chartHeight);
-    ctx.strokeStyle = "#334155";
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    // Draw y-axis grid lines and labels with improved styling
-    ctx.textAlign = "right";
-    ctx.textBaseline = "middle";
-    ctx.font = "12px Inter, system-ui, sans-serif";
-    ctx.fillStyle = "#475569";
-
-    for (let i = 0; i <= yTickCount; i++) {
-      const y = marginTop + ((yTickCount - i) / yTickCount) * chartHeight;
-      const value = Math.round(
-        minCount + (i / yTickCount) * (maxCount - minCount)
-      );
-
-      // Tick mark
-      ctx.beginPath();
-      ctx.moveTo(marginLeft - 5, y);
-      ctx.lineTo(marginLeft, y);
-      ctx.strokeStyle = "#334155";
-      ctx.lineWidth = 2;
-      ctx.stroke();
-
-      // Label
-      ctx.fillText(value.toLocaleString(), marginLeft - 10, y);
-    }
-
-    // Draw x-axis labels and tick marks with improved styling
-    ctx.textAlign = "center";
-    ctx.textBaseline = "top";
-    ctx.fillStyle = "#475569";
-    ctx.font = "12px Inter, system-ui, sans-serif";
-
-    const yearStep = yearRange > 5 ? Math.ceil(yearRange / 5) : 1;
-    for (let year = minYear; year <= maxYear; year += yearStep) {
-      const x = marginLeft + ((year - minYear) / yearRange) * chartWidth;
-
-      // Tick mark
-      ctx.beginPath();
-      ctx.moveTo(x, marginTop + chartHeight);
-      ctx.lineTo(x, marginTop + chartHeight + 5);
-      ctx.strokeStyle = "#334155";
-      ctx.lineWidth = 2;
-      ctx.stroke();
-
-      // Label
-      ctx.fillText(year.toString(), x, marginTop + chartHeight + 10);
-    }
-
-    // Draw chart title with improved styling
-    ctx.fillStyle = "#1e40af"; // Dark blue color
-    ctx.font = "bold 16px Inter, system-ui, sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText(
-      "Prediksi dengan Interpolasi Polinom Newton",
-      marginLeft + chartWidth / 2,
-      marginTop - 25
-    );
-
-    // Draw start and end points
-    const getX = (year: number) =>
-      marginLeft + ((year - minYear) / yearRange) * chartWidth;
-
-    const getY = (count: number) =>
-      marginTop + chartHeight - ((count - minCount) / countRange) * chartHeight;
-
-    // Draw line between points with gradient
-    const gradient = ctx.createLinearGradient(
-      marginLeft,
-      marginTop + chartHeight,
-      marginLeft + chartWidth,
-      marginTop
-    );
-    gradient.addColorStop(0, "#3b82f6");
-    gradient.addColorStop(1, "#2563eb");
-
-    ctx.beginPath();
-    ctx.moveTo(getX(xData[0]), getY(yData[0]));
-    ctx.lineTo(getX(xData[xData.length - 1]), getY(yData[yData.length - 1]));
-    ctx.strokeStyle = gradient;
-    ctx.lineWidth = 3;
-    ctx.stroke();
-
-    // Draw data points with improved styling
-    const drawPoint = (
-      x: number,
-      y: number,
-      color: string,
-      size: number = 7
-    ) => {
-      ctx.beginPath();
-      ctx.arc(x, y, size, 0, Math.PI * 2);
-      ctx.fillStyle = color;
-      ctx.fill();
-      ctx.strokeStyle = "#ffffff";
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    };
-
-    xData.forEach((year, i) => {
-      drawPoint(getX(year), getY(yData[i]), "#3b82f6");
-    });
-
-    // Draw labels for start and end points with improved styling
-    ctx.fillStyle = "#1e293b";
-    ctx.font = "bold 12px Inter, system-ui, sans-serif";
-    ctx.textAlign = "center";
-
-    // Data point labels with background
-    const drawPointLabel = (x: number, y: number, text: string) => {
-      const padding = 4;
-      const textWidth = ctx.measureText(text).width;
-      const textHeight = 16;
-
-      // Draw background
-      ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
-      ctx.fillRect(
-        x - textWidth / 2 - padding,
-        y - 24 - padding,
-        textWidth + padding * 2,
-        textHeight + padding * 2
-      );
-
-      // Draw border
-      ctx.strokeStyle = "#e2e8f0";
-      ctx.lineWidth = 1;
-      ctx.strokeRect(
-        x - textWidth / 2 - padding,
-        y - 24 - padding,
-        textWidth + padding * 2,
-        textHeight + padding * 2
-      );
-
-      // Draw text
-      ctx.fillStyle = "#1e293b";
-      ctx.fillText(text, x, y - 24);
-    };
-
-    xData.forEach((year, i) => {
-      drawPointLabel(
-        getX(year),
-        getY(yData[i]),
-        `${year}: ${yData[i].toLocaleString()}`
-      );
-    });
-
-    // Draw extrapolation/interpolation point if available
-    if (interpolationResult !== null && targetYearNum) {
-      const targetX = getX(targetYearNum);
-      const targetY = getY(interpolationResult);
-
-      // Draw dashed line from axis to prediction point
-      ctx.beginPath();
-      ctx.setLineDash([5, 3]);
-      ctx.moveTo(targetX, marginTop + chartHeight);
-      ctx.lineTo(targetX, targetY);
-      ctx.strokeStyle = "#10b981";
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      ctx.setLineDash([]);
-
-      // Draw horizontal dashed line to y-axis
-      ctx.beginPath();
-      ctx.setLineDash([5, 3]);
-      ctx.moveTo(marginLeft, targetY);
-      ctx.lineTo(targetX, targetY);
-      ctx.stroke();
-      ctx.setLineDash([]);
-
-      // Draw prediction point
-      drawPoint(targetX, targetY, "#10b981", 8);
-
-      // Draw prediction label
-      ctx.fillStyle = "#10b981";
-      ctx.font = "bold 14px Inter, system-ui, sans-serif";
-
-      drawPointLabel(
-        targetX,
-        targetY,
-        `${targetYearNum}: ${interpolationResult.toLocaleString()}`
-      );
-    }
-
-    // Draw legend with improved styling
-    const legendY = marginTop + 20;
-    const legendX = marginLeft + chartWidth - 150;
-
-    // Legend background
-    ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
-    ctx.fillRect(legendX - 10, legendY - 10, 160, 70);
-    ctx.strokeStyle = "#e2e8f0";
-    ctx.lineWidth = 1;
-    ctx.strokeRect(legendX - 10, legendY - 10, 160, 70);
-
-    // Legend items
-    ctx.fillStyle = "#1e293b";
-    ctx.font = "14px Inter, system-ui, sans-serif";
-    ctx.textAlign = "left";
-    ctx.textBaseline = "middle";
-
-    ctx.fillText("Data Aktual", legendX + 20, legendY);
-    drawPoint(legendX + 10, legendY, "#3b82f6", 6);
-
-    if (interpolationResult !== null) {
-      ctx.fillText("Data Prediksi", legendX + 20, legendY + 30);
-      drawPoint(legendX + 10, legendY + 30, "#10b981", 6);
-    }
-
-    // Draw y-axis title with improved styling
-    ctx.save();
-    ctx.translate(15, marginTop + chartHeight / 2);
-    ctx.rotate(-Math.PI / 2);
-    ctx.textAlign = "center";
-    ctx.fillStyle = "#334155";
-    ctx.font = "14px Inter, system-ui, sans-serif";
-    ctx.fillText("Jumlah UMKM", 0, 0);
-    ctx.restore();
-
-    // Draw x-axis title with improved styling
-    ctx.fillStyle = "#334155";
-    ctx.font = "14px Inter, system-ui, sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText(
-      "Tahun",
-      marginLeft + chartWidth / 2,
-      marginTop + chartHeight + 45
-    );
-  }, [dataRows, targetYear, interpolationResult]);
-
-  // Handle window resize
-  useEffect(() => {
-    const handleResize = () => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-
-      // Adjust canvas size based on container
-      const container = canvas.parentElement;
-      if (container) {
-        canvas.width = container.clientWidth;
-        canvas.height = 400;
-        // This will trigger the useEffect above to redraw
-        if (interpolationResult !== null) {
-          setInterpolationResult(interpolationResult);
-        }
-      }
-    };
-
-    window.addEventListener("resize", handleResize);
-    handleResize(); // Initial sizing
-
-    return () => {
-      window.removeEventListener("resize", handleResize);
-    };
-  }, [interpolationResult]);
+  // Gabungkan data aktual dan prediksi (prediksi hanya di tahun target)
+  const chartData = [
+    ...actualData,
+    ...(hasPrediksi
+      ? [
+          {
+            year: predYearNum,
+            count: interpolationResult,
+            type: "prediksi",
+          },
+        ]
+      : []),
+  ].sort((a, b) => a.year - b.year);
 
   return (
     <div className="space-y-8">
@@ -434,6 +153,28 @@ export const InterpolationSection: React.FC = () => {
         <h3 className="text-xl font-semibold text-blue-900 border-b border-blue-100 pb-2 mb-4">
           Data Tahun Referensi
         </h3>
+        {/* Tombol gunakan data terimpor */}
+        <div className="mb-4">
+          <Button
+            onClick={useImportedData}
+            className="text-sm bg-green-600 hover:bg-green-700 text-white"
+            disabled={comparisonData.length < 2}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-4 w-4 mr-1"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path
+                fillRule="evenodd"
+                d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
+                clipRule="evenodd"
+              />
+            </svg>
+            Gunakan Data Terimpor
+          </Button>
+        </div>
         {/* Tabel input dinamis */}
         <div className="overflow-x-auto mb-4">
           <table className="min-w-[320px] w-full border border-slate-200 rounded text-sm">
@@ -510,11 +251,95 @@ export const InterpolationSection: React.FC = () => {
               </div>
             </div>
           </div>
-          <div className="bg-slate-50 p-4 rounded-lg shadow-inner">
-            <canvas
-              ref={canvasRef}
-              style={{ width: "100%", height: "400px" }}
-            ></canvas>
+          {/* Ganti canvas dengan recharts */}
+          <div
+            className="bg-slate-50 p-4 rounded-lg shadow-inner"
+            style={{ height: 400 }}
+          >
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData}>
+                <CartesianGrid stroke="#e5e7eb" strokeDasharray="3 3" />
+                <XAxis
+                  dataKey="year"
+                  type="number"
+                  domain={[
+                    Math.min(...chartData.map((d) => d.year)),
+                    Math.max(...chartData.map((d) => d.year)),
+                  ]}
+                  tick={{ fill: "#334155", fontSize: 12 }}
+                  axisLine={{ stroke: "#334155" }}
+                  tickLine={{ stroke: "#334155" }}
+                  allowDuplicatedCategory={false}
+                  interval={0}
+                >
+                  <Label
+                    value="Tahun"
+                    offset={20}
+                    position="insideBottom"
+                    fill="#334155"
+                    fontSize={14}
+                  />
+                </XAxis>
+                <YAxis
+                  tick={{ fill: "#334155", fontSize: 12 }}
+                  axisLine={{ stroke: "#334155" }}
+                  tickLine={{ stroke: "#334155" }}
+                  width={90}
+                  tickFormatter={(v) => v.toLocaleString()}
+                >
+                  <Label
+                    value="Jumlah UMKM"
+                    angle={-90}
+                    position="insideLeft"
+                    fill="#334155"
+                    fontSize={14}
+                  />
+                </YAxis>
+                <Tooltip
+                  formatter={(value: any) => value.toLocaleString()}
+                  labelFormatter={(label) => `Tahun: ${label}`}
+                />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="count"
+                  name="Data Aktual"
+                  stroke="#2563eb"
+                  strokeWidth={3}
+                  dot={{
+                    r: 6,
+                    fill: "#2563eb",
+                    stroke: "#fff",
+                    strokeWidth: 2,
+                  }}
+                  isAnimationActive={false}
+                  connectNulls
+                  data={chartData.filter((d) => d.type === "actual")}
+                />
+                {hasPrediksi && (
+                  <Line
+                    type="linear"
+                    dataKey="count"
+                    name="Data Prediksi"
+                    stroke="#10b981"
+                    strokeWidth={3}
+                    strokeDasharray="8 4"
+                    dot={{
+                      r: 7,
+                      fill: "#10b981",
+                      stroke: "#fff",
+                      strokeWidth: 2,
+                    }}
+                    isAnimationActive={false}
+                    connectNulls
+                    data={[
+                      chartData[chartData.length - 2], // titik aktual terakhir
+                      chartData[chartData.length - 1], // titik prediksi
+                    ]}
+                  />
+                )}
+              </LineChart>
+            </ResponsiveContainer>
           </div>
           {/* Tabel data awal dan hasil prediksi */}
           <div className="mt-6">
@@ -537,28 +362,25 @@ export const InterpolationSection: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  <tr>
-                    <td className="px-3 py-2 border-b border-slate-100">
-                      {dataRows[0].year}
-                    </td>
-                    <td className="px-3 py-2 border-b border-slate-100">
-                      {Number(dataRows[0].count).toLocaleString()}
-                    </td>
-                    <td className="px-3 py-2 border-b border-slate-100">
-                      Data Awal
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="px-3 py-2 border-b border-slate-100">
-                      {dataRows[1].year}
-                    </td>
-                    <td className="px-3 py-2 border-b border-slate-100">
-                      {Number(dataRows[1].count).toLocaleString()}
-                    </td>
-                    <td className="px-3 py-2 border-b border-slate-100">
-                      Data Akhir
-                    </td>
-                  </tr>
+                  {/* Tampilkan seluruh data tahun referensi */}
+                  {dataRows.map((row, idx) => (
+                    <tr key={idx}>
+                      <td className="px-3 py-2 border-b border-slate-100">
+                        {row.year}
+                      </td>
+                      <td className="px-3 py-2 border-b border-slate-100">
+                        {Number(row.count).toLocaleString()}
+                      </td>
+                      <td className="px-3 py-2 border-b border-slate-100">
+                        {idx === 0
+                          ? "Data Awal"
+                          : idx === dataRows.length - 1
+                          ? "Data Akhir"
+                          : "Data Antara"}
+                      </td>
+                    </tr>
+                  ))}
+                  {/* Baris hasil prediksi */}
                   {interpolationResult !== null && targetYear && (
                     <tr className="bg-green-50 font-semibold">
                       <td className="px-3 py-2 border-b border-slate-100">
